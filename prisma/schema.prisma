@@ -36,6 +36,7 @@ model User {
   disputes      Dispute[]
   sentMessages  Message[]        @relation("MessageSender")
   receivedMessages Message[]     @relation("MessageRecipient")
+  tasksAsHuman  Task[]          @relation("TaskHuman")
 
   @@index([email])
   @@index([phone])
@@ -68,7 +69,6 @@ model HumanProfile {
   // 关系
   wallets         Wallet[]
   certifications  Certification[]
-  tasks           Task[]    @relation("TaskHuman")
 
   @@index([location])
   @@index([hourlyRate])

@@ -444,7 +444,7 @@ export async function POST(request: NextRequest) {
 // GET /api/mcp - MCP Server 信息
 export async function GET(request: NextRequest) {
   return NextResponse.json({
-    name: 'Agent Didi MCP Server',
+    name: 'HumanAPI MCP Server',
     version: '1.0.0',
     description: 'MCP server for AI agents to book human experts for physical-world tasks',
     tools: [
