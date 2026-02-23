@@ -1,0 +1,313 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ 用户系统 ============
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  phone         String?   @unique
+  password      String?
+  name          String
+  avatar        String?
+  role          UserRole  @default(AGENT)
+  verified      Boolean   @default(false)
+  rating        Float     @default(5.0)
+  totalReviews  Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // 关系
+  humanProfile  HumanProfile?
+  tasks         Task[]
+  bookingsAsAgent Booking[]      @relation("AgentBookings")
+  bookingsAsHuman Booking[]      @relation("HumanBookings")
+  reviewsGiven  Review[]         @relation("ReviewsGiven")
+  reviewsReceived Review[]       @relation("ReviewsReceived")
+  disputes      Dispute[]
+  sentMessages  Message[]        @relation("MessageSender")
+  receivedMessages Message[]     @relation("MessageRecipient")
+
+  @@index([email])
+  @@index([phone])
+}
+
+enum UserRole {
+  AGENT
+  HUMAN
+  ADMIN
+}
+
+// ============ 人类专家档案 ============
+
+model HumanProfile {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio             String?
+  location        Json      // { lat, lon, city, country }
+  skills          Json      // [{ name, verified }]
+  hourlyRate      Float
+  currency        String    @default("CNY")
+  available       Boolean   @default(true)
+  verified        Boolean   @default(false)
+  totalTasks      Int       @default(0)
+  successRate     Float     @default(100.0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // 关系
+  wallets         Wallet[]
+  certifications  Certification[]
+  tasks           Task[]    @relation("TaskHuman")
+
+  @@index([location])
+  @@index([hourlyRate])
+  @@index([available])
+}
+
+// ============ 钱包 ============
+
+model Wallet {
+  id              String      @id @default(cuid())
+  humanProfileId  String
+  humanProfile    HumanProfile @relation(fields: [humanProfileId], references: [id], onDelete: Cascade)
+  type            WalletType
+  address         String
+  network         String?
+  confirmed       Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+
+  @@index([humanProfileId])
+}
+
+enum WalletType {
+  STRIPE_CONNECT
+  CRYPTO
+}
+
+// ============ 认证证书 ============
+
+model Certification {
+  id              String      @id @default(cuid())
+  humanProfileId  String
+  humanProfile    HumanProfile @relation(fields: [humanProfileId], references: [id], onDelete: Cascade)
+  name            String
+  issuer          String?
+  documentUrl     String?
+  verified        Boolean     @default(false)
+  verifiedAt      DateTime?
+  createdAt       DateTime    @default(now())
+
+  @@index([humanProfileId])
+}
+
+// ============ 任务 ============
+
+model Task {
+  id              String      @id @default(cuid())
+  agentId         String
+  agent           User        @relation(fields: [agentId], references: [id])
+  humanId         String?
+  human           User?       @relation("TaskHuman", fields: [humanId], references: [id])
+  title           String
+  description     String      @db.Text
+  skills          Json        // 技能需求
+  location        Json        // 任务位置 { lat, lon, address }
+  scheduledTime   DateTime?
+  estimatedDuration Int        // 预计时长（分钟）
+  paymentAmount   Float
+  currency        String      @default("CNY")
+  status          TaskStatus  @default(DRAFT)
+  priority        Int         @default(5) // 1-10, 10最高
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  completedAt     DateTime?
+
+  // 关系
+  booking         Booking?
+
+  @@index([agentId])
+  @@index([humanId])
+  @@index([status])
+  @@index([scheduledTime])
+  @@index([createdAt])
+}
+
+enum TaskStatus {
+  DRAFT
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ============ 预订 ============
+
+model Booking {
+  id              String        @id @default(cuid())
+  taskId          String        @unique
+  task            Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  agentId         String
+  agent           User          @relation("AgentBookings", fields: [agentId], references: [id])
+  humanId         String
+  human           User          @relation("HumanBookings", fields: [humanId], references: [id])
+  scheduledTime   DateTime
+  estimatedDuration Int
+  actualDuration  Int?
+  paymentAmount   Float
+  paymentStatus   PaymentStatus @default(PENDING)
+  status          BookingStatus @default(PENDING)
+  completionProof String?
+  agentRating     Float?
+  humanRating     Float?
+  stripePaymentIntentId String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  // 关系
+  messages        Message[]
+  reviews         Review[]
+  disputes        Dispute[]
+
+  @@index([agentId])
+  @@index([humanId])
+  @@index([status])
+  @@index([scheduledTime])
+  @@index([createdAt])
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  REJECTED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+// ============ 消息 ============
+
+model Message {
+  id              String    @id @default(cuid())
+  bookingId       String
+  booking         Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User      @relation("MessageSender", fields: [senderId], references: [id])
+  recipientId     String
+  recipient       User      @relation("MessageRecipient", fields: [recipientId], references: [id])
+  content         String    @db.Text
+  attachments     Json?     // 文件列表
+  read            Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  @@index([bookingId])
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([createdAt])
+}
+
+// ============ 评价 ============
+
+model Review {
+  id              String    @id @default(cuid())
+  bookingId       String
+  booking         Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  reviewerId      String
+  reviewer        User      @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  revieweeId      String
+  reviewee        User      @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  rating          Float     // 1-5
+  comment         String?   @db.Text
+  createdAt       DateTime  @default(now())
+
+  @@unique([bookingId, reviewerId])
+  @@index([bookingId])
+  @@index([reviewerId])
+  @@index([revieweeId])
+}
+
+// ============ 争议 ============
+
+model Dispute {
+  id              String        @id @default(cuid())
+  bookingId       String
+  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  reporterId      String
+  reporter        User          @relation(fields: [reporterId], references: [id])
+  reason          String
+  description     String        @db.Text
+  evidence        Json?         // 证据文件列表
+  status          DisputeStatus @default(OPEN)
+  aiResolution    String?       @db.Text
+  humanResolution String?       @db.Text
+  resolvedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([bookingId])
+  @@index([reporterId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum DisputeStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  REJECTED
+}
+
+// ============ 技能分类（系统常量） ============
+
+model SkillCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  nameEn      String   @unique
+  nameZh      String   @unique
+  icon        String?
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  skills      Skill[]
+
+  @@index([order])
+}
+
+model Skill {
+  id          String        @id @default(cuid())
+  categoryId  String
+  category    SkillCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name        String        @unique
+  nameEn      String
+  nameZh      String
+  description String?
+  icon        String?
+  order       Int           @default(0)
+  createdAt   DateTime      @default(now())
+
+  @@index([categoryId])
+  @@index([order])
+}
