@@ -71,13 +71,14 @@ export function truncateText(text: string, maxLength: number): string {
 
 // 计算评分星级
 export function getRatingStars(rating: number): number[] {
-  const fullStars = Math.floor(rating)
-  const hasHalfStar = rating % 1 >= 0.5
+  const normalizedRating = Math.min(5, Math.max(0, rating))
+  const fullStars = Math.floor(normalizedRating)
+  const hasHalfStar = fullStars < 5 && normalizedRating % 1 >= 0.5
   const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
 
   return [
     ...Array(fullStars).fill(1),
-    hasHalfStar ? 0.5 : 0,
+    ...(hasHalfStar ? [0.5] : []),
     ...Array(emptyStars).fill(0),
   ]
 }
