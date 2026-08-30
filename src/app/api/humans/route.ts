@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import {
+  createHumanSchema,
+  humansQuerySchema,
+  parseJsonBody,
+  parseSearchParams,
+  parseSkillJson,
+} from '@/lib/validation'
+import type { Prisma } from '@prisma/client'
+import { requireApiKey } from '@/lib/auth'
 
 /**
  * GET /api/humans - 获取人类专家列表
@@ -7,18 +16,29 @@ import { prisma } from '@/lib/db'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const skills = searchParams.get('skills')?.split(',')
-    const lat = searchParams.get('lat')
-    const lon = searchParams.get('lon')
-    const maxDistance = parseInt(searchParams.get('maxDistance') || '10000')
-    const rateMin = parseFloat(searchParams.get('rateMin') || '0')
-    const rateMax = parseFloat(searchParams.get('rateMax') || '999999')
-    const ratingMin = parseFloat(searchParams.get('ratingMin') || '0')
-    const availableNow = searchParams.get('availableNow') === 'true'
+    const parsed = parseSearchParams(searchParams, humansQuerySchema)
 
-    const where: any = {
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error, details: parsed.details },
+        { status: 400 }
+      )
+    }
+
+    const {
+      skills,
+      lat,
+      lon,
+      maxDistance,
+      rateMin,
+      rateMax,
+      ratingMin,
+      availableNow,
+    } = parsed.data
+
+    const where: Prisma.HumanProfileWhereInput = {
       verified: true,
-      available: true,
+      ...(availableNow ? { available: true } : {}),
       hourlyRate: {
         gte: rateMin,
         lte: rateMax,
@@ -57,17 +77,17 @@ export async function GET(request: NextRequest) {
     // 技能筛选
     if (skills && skills.length > 0) {
       humans = humans.filter((human) => {
-        const humanSkills = (human.skills as any[]).map((s) => s.name)
+        const humanSkills = parseSkillJson(human.skills).map((skill) => skill.name)
         return skills.every((skill) => humanSkills.includes(skill))
       })
     }
 
     // 位置筛选
-    if (lat && lon) {
+    if (lat !== undefined && lon !== undefined) {
       const { findAvailableHumans } = await import('@/lib/matching')
       const locationHumans = await findAvailableHumans({
         skills,
-        location: { lat: parseFloat(lat), lon: parseFloat(lon) },
+        location: { lat, lon },
         maxDistance,
         rateMin,
         rateMax,
@@ -103,15 +123,25 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const unauthorized = requireApiKey(request)
+    if (unauthorized) return unauthorized
+    const parsed = await parseJsonBody(request, createHumanSchema)
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error, details: parsed.details },
+        { status: 400 }
+      )
+    }
+
     const {
       userId,
       bio,
       location,
       skills,
       hourlyRate,
-      currency = 'CNY',
-    } = body
+      currency,
+    } = parsed.data
 
     // 验证用户存在
     const user = await prisma.user.findUnique({
@@ -149,12 +179,12 @@ export async function POST(request: NextRequest) {
         userId,
         bio,
         location,
-        skills,
+        skills: skills.map((skill) => ({ ...skill, verified: false })),
         hourlyRate,
         currency,
       },
       include: {
-        user: true,
+        user: { select: { id: true, name: true, avatar: true, rating: true } },
       },
     })
 

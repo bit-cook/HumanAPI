@@ -10,7 +10,7 @@ interface AuthState {
   refresh: () => Promise<void>
 }
 
-export const useAuth = create<AuthState>((set, get) => ({
+export const useAuth = create<AuthState>((set) => ({
   user: null,
   isLoading: false,
   error: null,
@@ -61,7 +61,7 @@ export const useAuth = create<AuthState>((set, get) => ({
       } else {
         set({ user: null, isLoading: false })
       }
-    } catch (error) {
+    } catch {
       set({ user: null, isLoading: false })
     }
   },

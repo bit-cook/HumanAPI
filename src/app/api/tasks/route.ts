@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import {
+  createTaskSchema,
+  parseJsonBody,
+  parseSearchParams,
+  tasksQuerySchema,
+} from '@/lib/validation'
+import type { Prisma } from '@prisma/client'
+import { requireApiKey } from '@/lib/auth'
 
 /**
  * GET /api/tasks - 获取任务列表
@@ -7,13 +15,17 @@ import { prisma } from '@/lib/db'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status')
-    const agentId = searchParams.get('agentId')
-    const humanId = searchParams.get('humanId')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const parsed = parseSearchParams(searchParams, tasksQuerySchema)
 
-    const where: any = {}
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error, details: parsed.details },
+        { status: 400 }
+      )
+    }
+
+    const { status, agentId, humanId, page, limit } = parsed.data
+    const where: Prisma.TaskWhereInput = {}
 
     if (status) {
       where.status = status
@@ -82,7 +94,17 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const unauthorized = requireApiKey(request)
+    if (unauthorized) return unauthorized
+    const parsed = await parseJsonBody(request, createTaskSchema)
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error, details: parsed.details },
+        { status: 400 }
+      )
+    }
+
     const {
       agentId,
       title,
@@ -92,9 +114,9 @@ export async function POST(request: NextRequest) {
       scheduledTime,
       estimatedDuration,
       paymentAmount,
-      currency = 'CNY',
-      priority = 5,
-    } = body
+      currency,
+      priority,
+    } = parsed.data
 
     // 验证用户存在
     const user = await prisma.user.findUnique({
@@ -119,16 +141,14 @@ export async function POST(request: NextRequest) {
         description,
         skills,
         location,
-        scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
+        scheduledTime: scheduledTime ?? null,
         estimatedDuration,
         paymentAmount,
         currency,
         priority,
         status: 'OPEN',
       },
-      include: {
-        agent: true,
-      },
+      include: { agent: { select: { id: true, name: true, avatar: true } } },
     })
 
     // 查找匹配的人类专家
