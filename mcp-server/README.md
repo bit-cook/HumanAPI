@@ -19,7 +19,7 @@ npm install @humanapi/mcp-server
       "command": "npx",
       "args": ["-y", "@humanapi/mcp-server"],
       "env": {
-        "HUMANAPI_API_URL": "http://localhost:3000/api",
+        "HUMANAPI_API_URL": "http://localhost:3000/api/mcp",
         "HUMANAPI_API_KEY": "your-api-key"
       }
     }
@@ -104,7 +104,7 @@ npm install @humanapi/mcp-server
 - `estimated_duration: number` - 预计时长（分钟）
 - `payment_amount: number` - 支付金额
 - `payment_method?: string` - 支付方式
-- `agent_id?: string` - Agent ID（可选，默认使用当前用户）
+- `agent_id: string` - Agent 用户 ID
 
 **返回：**
 ```json
@@ -160,7 +160,7 @@ npm install @humanapi/mcp-server
 
 **参数：**
 - `id: string` - 预订ID
-- `status: string` - 状态（PENDING/CONFIRMED/IN_PROGRESS/COMPLETED/CANCELLED）
+- `status: string` - 新状态（CONFIRMED/IN_PROGRESS/COMPLETED/CANCELLED/DISPUTED）
 - `proof?: string` - 完成证明（完成任务时提供）
 
 **返回：**
@@ -258,7 +258,7 @@ npm install @humanapi/mcp-server
 
 ## 环境变量
 
-- `HUMANAPI_API_URL` - API 端点 URL
+- `HUMANAPI_API_URL` - API 端点 URL（默认 `http://localhost:3000/api/mcp`）
 - `HUMANAPI_API_KEY` - API 密钥（可选）
 
 ## 错误处理

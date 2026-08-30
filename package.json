@@ -2,21 +2,27 @@
   "name": "humanapi",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "mcp-server"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --max-warnings=0",
-    "test": "vitest run",
+    "lint": "eslint . --max-warnings=0 --ignore-pattern 'mcp-server/dist/**'",
+    "test": "vitest run --exclude 'mcp-server/**' && npm run mcp:test",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build && npm audit --audit-level=high",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run mcp:build && npm audit --audit-level=high",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "mcp:dev": "cd mcp-server && npm run dev"
+    "mcp:dev": "npm run dev --workspace @humanapi/mcp-server",
+    "mcp:build": "npm run build --workspace @humanapi/mcp-server",
+    "mcp:lint": "npm run lint --workspace @humanapi/mcp-server",
+    "mcp:test": "npm run test --workspace @humanapi/mcp-server"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",
