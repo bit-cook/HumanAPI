@@ -110,7 +110,7 @@ server.registerTool(
     inputSchema: {
       id: z.string().min(1).describe('Booking ID'),
       status: z
-        .enum(['CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'DISPUTED'])
+        .enum(['CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
         .describe('New booking status'),
       proof: z.string().min(1).optional().describe('Completion proof'),
     },

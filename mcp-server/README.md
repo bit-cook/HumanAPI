@@ -160,7 +160,7 @@ npm install @humanapi/mcp-server
 
 **参数：**
 - `id: string` - 预订ID
-- `status: string` - 新状态（CONFIRMED/IN_PROGRESS/COMPLETED/CANCELLED/DISPUTED）
+- `status: string` - 新状态（CONFIRMED/IN_PROGRESS/COMPLETED/CANCELLED）
 - `proof?: string` - 完成证明（完成任务时提供）
 
 **返回：**

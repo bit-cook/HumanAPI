@@ -24,7 +24,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node --input-type=module -e \"import { chmodSync } from 'node:fs'; chmodSync('dist/index.js', 0o755)\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src tests vitest.config.ts --max-warnings=0 --rule '@next/next/no-html-link-for-pages: off'",
     "test": "vitest run",

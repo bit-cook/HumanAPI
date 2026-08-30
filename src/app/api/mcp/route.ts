@@ -60,7 +60,7 @@ const bookingStatusSchema = z.enum([
 const updateBookingArgumentsSchema = z
   .object({
     id: identifierSchema,
-    status: bookingStatusSchema.exclude(['PENDING']),
+    status: bookingStatusSchema.exclude(['PENDING', 'DISPUTED']),
     proof: z.string().trim().min(1).max(10_000).optional(),
   })
   .strict()
@@ -157,8 +157,8 @@ function isMcpRequestAuthorized(
 const bookingTransitions: Readonly<Record<BookingStatus, readonly BookingStatus[]>> = {
   PENDING: ['CONFIRMED', 'CANCELLED'],
   CONFIRMED: ['IN_PROGRESS', 'CANCELLED'],
-  IN_PROGRESS: ['COMPLETED', 'CANCELLED', 'DISPUTED'],
-  COMPLETED: ['DISPUTED'],
+  IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
+  COMPLETED: [],
   CANCELLED: [],
   DISPUTED: [],
 }
