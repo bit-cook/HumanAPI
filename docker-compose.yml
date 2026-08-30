@@ -1,27 +1,45 @@
 services:
+  migrate:
+    build:
+      context: .
+      target: builder
+    command: npx prisma migrate deploy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-humanapi}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   app:
     build: .
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://humanapi:humanapi@postgres:5432/humanapi?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-humanapi}?schema=public
       APP_URL: http://localhost:3000
+      API_KEY: ${API_KEY:?Set API_KEY before starting HumanAPI}
       NODE_ENV: production
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: humanapi
-      POSTGRES_USER: humanapi
-      POSTGRES_PASSWORD: humanapi
+      POSTGRES_DB: ${POSTGRES_DB:-humanapi}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U humanapi -d humanapi"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-humanapi}"]
       interval: 10s
       timeout: 5s
       retries: 5

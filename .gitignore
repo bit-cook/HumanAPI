@@ -41,3 +41,4 @@ temp
 uploads
 public/uploads
 results.tsv
+.playwright-cli/

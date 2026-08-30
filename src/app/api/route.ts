@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   return NextResponse.json({
     name: 'HumanAPI',
-    version: '1.0.0',
+    version: '1.2.0',
     description: 'Humans as a Service - 让人类成为可调用的 API',
     baseUrl: process.env.APP_URL || 'http://localhost:3000',
     endpoints: {

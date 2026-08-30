@@ -1,10 +1,13 @@
 # Security Policy
 
+> **v1.2.0 当前边界**：仓库提供服务级 API Key、Zod 验证和 Prisma 事务，但尚无最终用户身份、资源级授权、限流、支付处理器、S3 上传或合规认证。下文提到的 JWT、Stripe 与 S3 控制属于路线图。
+
 ## Supported Versions
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
+| 1.2.x   | :white_check_mark: |
+| < 1.2   | :x:                |
 
 ## Reporting a Vulnerability
 

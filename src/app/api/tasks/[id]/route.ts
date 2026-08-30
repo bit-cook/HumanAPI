@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { requireApiKey } from '@/lib/auth'
+import { parseJsonBody, updateTaskSchema } from '@/lib/validation'
 
 interface RouteContext {
   params: Promise<{
@@ -11,6 +13,8 @@ interface RouteContext {
  * GET /api/tasks/:id - 获取任务详情
  */
 export async function GET(request: NextRequest, context: RouteContext) {
+  const unauthorized = requireApiKey(request)
+  if (unauthorized) return unauthorized
   try {
     const { id } = await context.params
 
@@ -76,16 +80,35 @@ export async function GET(request: NextRequest, context: RouteContext) {
  * PUT /api/tasks/:id - 更新任务
  */
 export async function PUT(request: NextRequest, context: RouteContext) {
+  const unauthorized = requireApiKey(request)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await context.params
-    const body = await request.json()
+    const parsed = await parseJsonBody(request, updateTaskSchema)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error, details: parsed.details },
+        { status: 400 }
+      )
+    }
 
-    const task = await prisma.task.update({
+    const updated = await prisma.task.updateMany({
+      where: { id, status: { in: ['DRAFT', 'OPEN'] }, booking: null },
+      data: parsed.data,
+    })
+    if (updated.count !== 1) {
+      return NextResponse.json(
+        { success: false, error: 'Only unbooked draft or open tasks can be edited' },
+        { status: 409 }
+      )
+    }
+
+    const task = await prisma.task.findUnique({
       where: { id },
-      data: body,
       include: {
-        agent: true,
-        human: true,
+        agent: { select: { id: true, name: true, avatar: true } },
+        human: { select: { id: true, name: true, avatar: true } },
       },
     })
 
@@ -109,12 +132,21 @@ export async function PUT(request: NextRequest, context: RouteContext) {
  * DELETE /api/tasks/:id - 删除任务
  */
 export async function DELETE(request: NextRequest, context: RouteContext) {
+  const unauthorized = requireApiKey(request)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await context.params
-
-    await prisma.task.delete({
-      where: { id },
+    const deleted = await prisma.task.deleteMany({
+      where: { id, status: { in: ['DRAFT', 'OPEN'] }, booking: null },
     })
+
+    if (deleted.count !== 1) {
+      return NextResponse.json(
+        { success: false, error: 'Only unbooked draft or open tasks can be deleted' },
+        { status: 409 }
+      )
+    }
 
     return NextResponse.json({
       success: true,

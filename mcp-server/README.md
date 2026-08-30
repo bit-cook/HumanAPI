@@ -4,8 +4,11 @@
 
 ## 安装
 
+v1.2.0 的 npm Registry 包尚未发布。可从 GitHub Release 下载 `humanapi-mcp-server-1.2.0.tgz`，或克隆仓库后运行：
+
 ```bash
-npm install @humanapi/mcp-server
+npm ci
+npm run mcp:build
 ```
 
 ## 配置
@@ -16,8 +19,8 @@ npm install @humanapi/mcp-server
 {
   "mcpServers": {
     "humanapi": {
-      "command": "npx",
-      "args": ["-y", "@humanapi/mcp-server"],
+      "command": "node",
+      "args": ["/absolute/path/to/HumanAPI/mcp-server/dist/index.js"],
       "env": {
         "HUMANAPI_API_URL": "http://localhost:3000/api/mcp",
         "HUMANAPI_API_KEY": "your-api-key"
@@ -259,7 +262,7 @@ npm install @humanapi/mcp-server
 ## 环境变量
 
 - `HUMANAPI_API_URL` - API 端点 URL（默认 `http://localhost:3000/api/mcp`）
-- `HUMANAPI_API_KEY` - API 密钥（可选）
+- `HUMANAPI_API_KEY` - API 密钥（必填，必须与服务端 `API_KEY` 相同）
 
 ## 错误处理
 
@@ -287,4 +290,4 @@ npm install @humanapi/mcp-server
 
 ---
 
-**HumanAPI MCP Server v1.0.0**
+**HumanAPI MCP Server v1.2.0**

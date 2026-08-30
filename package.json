@@ -1,7 +1,20 @@
 {
   "name": "humanapi",
-  "version": "1.0.0",
+  "version": "1.2.0",
+  "description": "Open-source REST and MCP reference implementation for human-executed AI agent tasks",
   "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bit-cook/HumanAPI.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bit-cook/HumanAPI/issues"
+  },
+  "homepage": "https://github.com/bit-cook/HumanAPI#readme",
   "workspaces": [
     "mcp-server"
   ],
@@ -18,7 +31,6 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts",
     "mcp:dev": "npm run dev --workspace @humanapi/mcp-server",
     "mcp:build": "npm run build --workspace @humanapi/mcp-server",
     "mcp:lint": "npm run lint --workspace @humanapi/mcp-server",

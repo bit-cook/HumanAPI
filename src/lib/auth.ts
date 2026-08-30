@@ -12,8 +12,9 @@ export function isAuthorizedRequest(request: Pick<NextRequest, 'headers'>): bool
   if (!expected) return false
 
   const bearer = request.headers.get('authorization')
+  const bearerMatch = bearer?.match(/^Bearer\s+(.+)$/i)
   const provided = request.headers.get('x-api-key') ??
-    (bearer?.startsWith('Bearer ') ? bearer.slice(7) : null)
+    bearerMatch?.[1] ?? null
 
   return provided !== null && safeEqual(provided, expected)
 }

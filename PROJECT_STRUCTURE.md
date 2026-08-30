@@ -1,5 +1,7 @@
 # Agent Didi - 项目文件结构
 
+> **历史规划文档**：本文包含尚未创建的目录。v1.2.0 的真实发布结构以仓库文件为准；NextAuth、Socket、支付、Stripe 和 S3 模块目前不存在。
+
 ```
 agent-didi/
 ├── README.md                           # 项目介绍

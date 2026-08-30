@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: humanapi
+          POSTGRES_USER: humanapi
+          POSTGRES_PASSWORD: humanapi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U humanapi -d humanapi"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://humanapi:humanapi@localhost:5432/humanapi?schema=public
+      API_KEY: ci-only-api-key
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma migrate deploy
+      - run: npm run check
+      - run: npm pack --workspace @humanapi/mcp-server --dry-run
+      - run: docker build -t humanapi:ci .

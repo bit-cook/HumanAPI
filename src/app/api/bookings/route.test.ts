@@ -48,7 +48,6 @@ const validBody = {
   humanId: 'human-1',
   scheduledTime: '2026-09-01T08:30:00Z',
   estimatedDuration: 60,
-  paymentAmount: 100,
 }
 
 describe('POST /api/bookings', () => {
@@ -83,7 +82,11 @@ describe('POST /api/bookings', () => {
         data: { humanId: 'human-1', status: 'ASSIGNED' },
       })
     )
-    expect(mocks.transaction.booking.create).toHaveBeenCalledOnce()
+    expect(mocks.transaction.booking.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ paymentAmount: 100 }),
+      })
+    )
     expect(
       mocks.transaction.task.updateMany.mock.invocationCallOrder[0]
     ).toBeLessThan(

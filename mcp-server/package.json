@@ -1,15 +1,23 @@
 {
   "name": "@humanapi/mcp-server",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "stdio MCP server for the HumanAPI service",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bit-cook/HumanAPI.git",
+    "directory": "mcp-server"
+  },
+  "homepage": "https://github.com/bit-cook/HumanAPI/tree/main/mcp-server",
+  "bugs": "https://github.com/bit-cook/HumanAPI/issues",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/client.js",
+  "types": "./dist/client.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
     },
     "./client": {
       "types": "./dist/client.d.ts",
@@ -17,14 +25,15 @@
     }
   },
   "bin": {
-    "humanapi-mcp": "./dist/index.js"
+    "humanapi-mcp": "dist/index.js"
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && node --input-type=module -e \"import { chmodSync } from 'node:fs'; chmodSync('dist/index.js', 0o755)\"",
+    "build": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.json && node --input-type=module -e \"import { chmodSync } from 'node:fs'; chmodSync('dist/index.js', 0o755)\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src tests vitest.config.ts --max-warnings=0 --rule '@next/next/no-html-link-for-pages: off'",
     "test": "vitest run",
@@ -32,7 +41,7 @@
     "prepack": "npm run build"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

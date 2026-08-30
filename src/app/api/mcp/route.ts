@@ -1,10 +1,9 @@
-import { createHash, timingSafeEqual } from 'node:crypto'
-
 import type { BookingStatus, Prisma, TaskStatus } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { prisma } from '@/lib/db'
+import { requireApiKey } from '@/lib/auth'
 
 const identifierSchema = z.string().trim().min(1).max(191)
 const locationSchema = z
@@ -134,24 +133,6 @@ function parseMcpToolCall(value: unknown): McpToolCall {
         arguments: listSkillsArgumentsSchema.parse(envelope.arguments),
       }
   }
-}
-
-function isMcpRequestAuthorized(
-  headers: Headers,
-  configuredApiKey = process.env.MCP_API_KEY
-): boolean {
-  if (!configuredApiKey) return true
-
-  const authorization = headers.get('authorization')
-  const bearerMatch = authorization?.match(/^Bearer\s+(.+)$/i)
-  const expectedDigest = createHash('sha256').update(configuredApiKey).digest()
-  const candidates = [bearerMatch?.[1], headers.get('x-api-key')]
-
-  return candidates.some((candidate) => {
-    if (!candidate) return false
-    const candidateDigest = createHash('sha256').update(candidate.trim()).digest()
-    return timingSafeEqual(expectedDigest, candidateDigest)
-  })
 }
 
 const bookingTransitions: Readonly<Record<BookingStatus, readonly BookingStatus[]>> = {
@@ -285,6 +266,7 @@ async function bookHuman(args: z.infer<typeof bookHumanArgumentsSchema>) {
         where: { id: args.human_id },
         select: {
           available: true,
+          verified: true,
           user: { select: { id: true, name: true } },
         },
       }),
@@ -294,7 +276,9 @@ async function bookHuman(args: z.infer<typeof bookHumanArgumentsSchema>) {
       throw new McpHttpError('Invalid agent', 404)
     }
     if (!human) throw new McpHttpError('Human not found', 404)
-    if (!human.available) throw new McpHttpError('Human is not available', 409)
+    if (!human.available || !human.verified) {
+      throw new McpHttpError('Human is not verified and available', 409)
+    }
 
     const task = await transaction.task.create({
       data: {
@@ -429,16 +413,17 @@ async function updateBooking(args: z.infer<typeof updateBookingArgumentsSchema>)
       ...(args.status === 'IN_PROGRESS' && existing.status !== 'IN_PROGRESS'
         ? { startedAt: now }
         : {}),
-      ...(args.status === 'COMPLETED'
-        ? { completedAt: now, paymentStatus: 'PAID' }
-        : {}),
+      ...(args.status === 'COMPLETED' ? { completedAt: now } : {}),
     }
     const taskUpdate = taskUpdateForStatus(args.status, now)
 
-    const updatedBooking = await transaction.booking.update({
-      where: { id: args.id },
+    const changed = await transaction.booking.updateMany({
+      where: { id: args.id, status: existing.status },
       data: bookingUpdate,
     })
+    if (changed.count !== 1) {
+      throw new McpHttpError('Booking changed concurrently; retry the request', 409)
+    }
     if (taskUpdate) {
       await transaction.task.update({
         where: { id: existing.taskId },
@@ -446,7 +431,7 @@ async function updateBooking(args: z.infer<typeof updateBookingArgumentsSchema>)
       })
     }
 
-    return updatedBooking
+    return transaction.booking.findUniqueOrThrow({ where: { id: args.id } })
   })
 
   return NextResponse.json({
@@ -505,12 +490,8 @@ async function dispatchToolCall(call: McpToolCall) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isMcpRequestAuthorized(request.headers)) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized' },
-      { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } }
-    )
-  }
+  const unauthorized = requireApiKey(request)
+  if (unauthorized) return unauthorized
 
   let body: unknown
   try {
@@ -531,16 +512,12 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!isMcpRequestAuthorized(request.headers)) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized' },
-      { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } }
-    )
-  }
+  const unauthorized = requireApiKey(request)
+  if (unauthorized) return unauthorized
 
   return NextResponse.json({
     name: 'HumanAPI MCP Server',
-    version: '1.0.0',
+    version: '1.2.0',
     description: 'MCP server for AI agents to book human experts for physical-world tasks',
     tools: toolNameSchema.options,
     baseUrl: `${process.env.APP_URL || 'http://localhost:3000'}/api/mcp`,

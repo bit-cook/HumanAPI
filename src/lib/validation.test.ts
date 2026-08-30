@@ -132,7 +132,15 @@ describe('collection route validation', () => {
         humanId: 'human-1',
         scheduledTime: '2026-09-01T08:30:00Z',
         estimatedDuration: 60,
-        paymentAmount: Number.POSITIVE_INFINITY,
+      }).success
+    ).toBe(true)
+    expect(
+      createBookingSchema.safeParse({
+        taskId: 'task-1',
+        humanId: 'human-1',
+        scheduledTime: '2026-09-01T08:30:00Z',
+        estimatedDuration: 60,
+        paymentAmount: 1,
       }).success
     ).toBe(false)
   })

@@ -35,7 +35,11 @@ const restExample = `const query = new URLSearchParams({
   availableNow: "true",
 });
 
-const response = await fetch(\`/api/humans?\${query}\`);
+const response = await fetch(\`/api/humans?\${query}\`, {
+  headers: {
+    authorization: \`Bearer \${process.env.HUMANAPI_API_KEY}\`,
+  },
+});
 const { data, count } = await response.json();`
 
 const mcpExample = `const response = await fetch("/api/mcp", {

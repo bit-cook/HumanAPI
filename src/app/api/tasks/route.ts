@@ -13,6 +13,9 @@ import { requireApiKey } from '@/lib/auth'
  * GET /api/tasks - 获取任务列表
  */
 export async function GET(request: NextRequest) {
+  const unauthorized = requireApiKey(request)
+  if (unauthorized) return unauthorized
+
   try {
     const { searchParams } = new URL(request.url)
     const parsed = parseSearchParams(searchParams, tasksQuerySchema)

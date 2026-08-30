@@ -1,296 +1,106 @@
-# HumanAPI - 部署指南
+# HumanAPI v1.2.0 部署指南
+
+## 实现范围
+
+当前发布包含 Next.js 16、PostgreSQL 16、Prisma migration、服务级 API Key 和 MCP stdio Server。最终用户身份/资源级授权、Stripe、Redis、Socket.io、S3、限流和合规认证尚未实现。
 
 ## 前置要求
 
-- Node.js 18+
-- PostgreSQL 15+
-- Redis 7+
-- Docker & Docker Compose（可选）
-- Stripe 账户（用于支付）
+- Node.js 22+
+- npm 10+
+- PostgreSQL 16，或 Docker
+- 一个长随机 `API_KEY`
 
-## 快速开始（开发环境）
+## Docker Compose（推荐）
 
-### 1. 克隆项目
-
-```bash
-cd /root/.openclaw/workspace/agent-didi
-```
-
-### 2. 安装依赖
-
-```bash
-npm install
-```
-
-### 3. 配置环境变量
+复制环境变量并至少设置 API Key：
 
 ```bash
 cp .env.example .env
-# 编辑 .env 文件，填入你的配置
+# 编辑 .env：设置 API_KEY 与 HUMANAPI_API_KEY 为同一个长随机值
+docker compose up --build -d
 ```
 
-### 4. 启动数据库
+Compose 会按顺序执行：
 
-使用 Docker Compose：
+1. 启动 PostgreSQL 并等待健康检查；
+2. 一次性运行 `prisma migrate deploy`；
+3. migration 成功后启动非 root 的 Next.js 容器；
+4. 使用 `/api/ready` 验证数据库 readiness。
+
+常用命令：
 
 ```bash
-docker-compose up -d postgres redis
+docker compose ps
+docker compose logs -f migrate app
+curl http://localhost:3000/api/health
+curl http://localhost:3000/api/ready
+docker compose down
 ```
 
-或者手动启动 PostgreSQL 和 Redis。
+数据库默认值兼容早期 Compose volume：
 
-### 5. 初始化数据库
+```dotenv
+POSTGRES_DB=humanapi
+POSTGRES_USER=user
+POSTGRES_PASSWORD=password
+```
+
+生产环境必须通过 secret 管理覆盖这些默认值，并在反向代理处终止 HTTPS。
+
+## 手动部署
 
 ```bash
-# 生成 Prisma Client
-npx prisma generate
-
-# 运行迁移
-npx prisma migrate dev
-
-# （可选）填充种子数据
-npm run db:seed
-```
-
-### 6. 启动开发服务器
-
-```bash
-npm run dev
-```
-
-访问 http://localhost:3000
-
-## Docker 部署
-
-### 1. 构建镜像
-
-```bash
-docker-compose build
-```
-
-### 2. 启动所有服务
-
-```bash
-docker-compose up -d
-```
-
-### 3. 查看日志
-
-```bash
-docker-compose logs -f app
-```
-
-### 4. 停止服务
-
-```bash
-docker-compose down
-```
-
-## 生产部署
-
-### 使用 Vercel
-
-1. 推送代码到 GitHub
-2. 在 Vercel 中导入项目
-3. 配置环境变量
-4. 部署
-
-### 使用 Railway
-
-1. 创建新项目
-2. 添加 PostgreSQL 和 Redis
-3. 配置环境变量
-4. 部署
-
-### 使用 AWS ECS
-
-1. 构建 Docker 镜像
-2. 推送到 ECR
-3. 配置 ECS 任务定义
-4. 部署服务
-
-### 使用阿里云
-
-1. 使用阿里云容器服务（ACK）
-2. 配置负载均衡
-3. 配置域名和 SSL
-4. 部署
-
-## 环境变量配置
-
-### 必需变量
-
-```env
-# 数据库
-DATABASE_URL=postgresql://user:password@localhost:5432/agent_didi
-
-# NextAuth
-NEXTAUTH_URL=https://yourdomain.com
-NEXTAUTH_SECRET=your-secret-key
-
-# Stripe
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_PUBLISHABLE_KEY=pk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-```
-
-### 可选变量
-
-```env
-# Redis
-REDIS_URL=redis://localhost:6379
-
-# AWS S3
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-AWS_REGION=us-east-1
-AWS_S3_BUCKET=agent-didi-uploads
-
-# SMTP 邮件
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-SMTP_FROM=noreply@agentdidi.com
-```
-
-## 数据库迁移
-
-### 开发环境
-
-```bash
-# 创建新迁移
-npx prisma migrate dev --name migration_name
-
-# 重置数据库
-npx prisma migrate reset
-```
-
-### 生产环境
-
-```bash
-# 应用迁移
+npm ci
+cp .env.example .env
 npx prisma migrate deploy
-
-# 查看迁移状态
-npx prisma migrate status
+API_KEY='your-secret' DATABASE_URL='postgresql://...' npm run build
+API_KEY='your-secret' DATABASE_URL='postgresql://...' npm start
 ```
 
-## Stripe 配置
+应用端点：
 
-### 1. 创建 Stripe Connect
+- `GET /api/health`：进程存活，不检查数据库；
+- `GET /api/ready`：执行 `SELECT 1`，数据库不可用时返回 503；
+- 其余 REST/MCP 路由：需要 Bearer 或 `x-api-key`。
 
-登录 Stripe Dashboard：
-1. 进入 Settings → Connect
-2. 启用 Connect
-3. 配置 OAuth 设置
+## 从 v1.1 或更早版本升级
 
-### 2. 配置 Webhook
-
-1. 在 Stripe Dashboard 创建 Webhook
-2. 端点：`https://yourdomain.com/api/stripe/webhook`
-3. 选择事件：
-   - `payment_intent.succeeded`
-   - `payment_intent.payment_failed`
-   - `account.updated`
-   - `transfer.completed`
-
-### 3. 人类专家 Onboarding
-
-人类专家注册时会跳转到 Stripe Connect onboarding 页面完成验证。
-
-## 监控和日志
-
-### 使用 PM2
+旧版本没有 Prisma migration 历史。先备份数据库，并确认现有结构与 `prisma/migrations/20260830184500_initial/migration.sql` 等价，再执行一次 baseline：
 
 ```bash
-npm install -g pm2
-
-# 启动
-pm2 start npm --name "agent-didi" -- start
-
-# 查看日志
-pm2 logs agent-didi
-
-# 重启
-pm2 restart agent-didi
-
-# 停止
-pm2 stop agent-didi
+npx prisma migrate resolve --applied 20260830184500_initial
+npx prisma migrate deploy
 ```
 
-### 使用 Docker
+不要在未经比对的生产数据库上直接标记 migration。有结构差异时，应先在数据库副本上生成、审查并测试专用升级 migration。
+
+旧 Compose volume 默认账号为 `user/password`；v1.2.0 默认继续兼容该账号。通过环境变量修改账号不会自动修改已初始化 volume 内的 PostgreSQL 角色。
+
+## MCP Server
 
 ```bash
-# 查看日志
-docker-compose logs -f app
-
-# 查看资源使用
-docker stats
+npm run mcp:build
+HUMANAPI_API_URL='https://your-host/api/mcp' \
+HUMANAPI_API_KEY='与服务端 API_KEY 相同' \
+node mcp-server/dist/index.js
 ```
 
-## 备份和恢复
+GitHub v1.2.0 Release 会附带 `humanapi-mcp-server-1.2.0.tgz`。npm Registry 包尚未发布。
 
-### 数据库备份
+## 发布前验证
 
 ```bash
-# 备份
-pg_dump -U user -d agent_didi > backup.sql
-
-# 恢复
-psql -U user -d agent_didi < backup.sql
+API_KEY='release-check-key' DATABASE_URL='postgresql://...' npm run check
+npm pack --workspace @humanapi/mcp-server --dry-run
+docker build -t humanapi:1.2.0 .
 ```
 
-### 文件备份
+## 生产安全清单
 
-```bash
-# 备份 S3 文件
-aws s3 sync s3://agent-didi-uploads ./backup
-```
-
-## 安全建议
-
-1. **使用 HTTPS** - 生产环境必须启用 SSL
-2. **环境变量** - 不要在代码中硬编码密钥
-3. **Rate Limiting** - 配置 API 速率限制
-4. **CORS** - 配置正确的 CORS 策略
-5. **输入验证** - 验证所有用户输入
-6. **SQL 注入** - 使用 Prisma ORM 防止注入
-7. **XSS 防护** - React 自动转义，但要小心 dangerouslySetInnerHTML
-
-## 性能优化
-
-1. **CDN** - 使用 CDN 加速静态资源
-2. **图片优化** - 使用 Next.js Image 组件
-3. **代码分割** - 利用 Next.js 自动代码分割
-4. **缓存** - 使用 Redis 缓存热门数据
-5. **数据库索引** - 确保 Prisma schema 有正确的索引
-6. **连接池** - 配置数据库连接池
-
-## 常见问题
-
-### Q: 数据库连接失败
-
-A: 检查 DATABASE_URL 是否正确，数据库是否运行。
-
-### Q: Stripe 支付失败
-
-A: 检查 API Keys 和 Webhook Secret 是否正确。
-
-### Q: Redis 连接错误
-
-A: 确保 Redis 正在运行，检查 REDIS_URL。
-
-### Q: 上传文件失败
-
-A: 检查 AWS S3 配置和权限。
-
-## 支持
-
-- 文档：https://docs.agentdidi.com
-- GitHub Issues：https://github.com/agent-didi/issues
-- 邮件：support@agentdidi.com
-
----
-
-**Agent Didi 部署指南 v1.0.0**
+- 使用高熵 API Key，并定期轮换；
+- API Key 只放在服务端/MCP 环境，不进入浏览器 bundle；
+- 使用 HTTPS、网络隔离、数据库备份和集中日志；
+- 在多租户上线前实现最终用户身份、资源所有权授权和审计；
+- 在真实支付上线前实现签名 webhook、幂等事件和独立支付账本；
+- 为公开部署补充分布式限流与独立安全评估。

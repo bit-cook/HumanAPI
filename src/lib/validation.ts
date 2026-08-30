@@ -323,9 +323,26 @@ export const createBookingSchema = z
     humanId: idSchema('humanId'),
     scheduledTime: scheduledTimeSchema,
     estimatedDuration: estimatedDurationSchema,
-    paymentAmount: paymentAmountSchema,
   })
   .strict()
+
+export const updateTaskSchema = createTaskSchema
+  .omit({ agentId: true })
+  .partial()
+  .strict()
+
+export const updateHumanSchema = createHumanSchema
+  .omit({ userId: true })
+  .partial()
+  .strict()
+
+export const updateBookingSchema = z
+  .object({
+    scheduledTime: scheduledTimeSchema.optional(),
+    estimatedDuration: estimatedDurationSchema.optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, 'At least one field is required')
 
 /**
  * Prisma JSON fields are untrusted at runtime. Invalid entries are ignored

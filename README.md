@@ -2,10 +2,10 @@
 
 > AI Agent 人类任务租赁平台 - 让人类成为可调用的 API
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
-![Next.js](https://img.shields.io/badge/next.js-14.2.14-black.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)
+![Next.js](https://img.shields.io/badge/next.js-16.3.3-black.svg)
 
 ---
 
@@ -25,17 +25,15 @@ HumanAPI 是一个连接数字世界（AI Agent）和物理世界（人类）的
 - 📍 实时地理位置匹配
 - 📊 历史记录优化
 
-### 完整生态
-- 🤖 AI Agent 专用接口
-- 👨‍💼 人类专家服务网络
-- 🌐 MCP Server 集成
-- 💬 实时三方通讯
+### 已实现
+- 🤖 REST 与 MCP stdio 接口
+- 🎯 五维专家匹配与地理距离计算
+- 📋 任务、预约、评价、消息和争议数据模型
+- 🔐 服务级 API Key、严格输入验证与原子状态迁移
+- 🐳 PostgreSQL 迁移与 Docker Compose 启动链
 
-### 支付系统
-- 💳 Stripe Connect 集成
-- 🌍 多币种支持
-- 🔒 自动合规
-- 💰 灵活结算
+> [!IMPORTANT]
+> v1.2.0 是开源参考实现，不是多租户托管服务。Stripe 支付、实时通讯、文件上传、最终用户登录/资源级授权与合规认证尚未实现；相关字段和设计文档属于扩展点。
 
 ## 🚀 快速开始
 
@@ -49,7 +47,7 @@ cd HumanAPI
 ### 2. 安装依赖
 
 ```bash
-npm install
+npm ci
 ```
 
 ### 3. 配置环境变量
@@ -99,10 +97,11 @@ HumanAPI/
 {
   "mcpServers": {
     "humanapi": {
-      "command": "npx",
-      "args": ["-y", "@humanapi/mcp-server"],
+      "command": "node",
+      "args": ["/absolute/path/to/HumanAPI/mcp-server/dist/index.js"],
       "env": {
-        "HUMANAPI_API_URL": "http://localhost:3000/api"
+        "HUMANAPI_API_URL": "http://localhost:3000/api/mcp",
+        "HUMANAPI_API_KEY": "与 API_KEY 相同的值"
       }
     }
   }
@@ -138,31 +137,34 @@ HumanAPI/
 - `GET /api/bookings` - 获取预订列表
 - `GET /api/bookings/:id` - 获取预订详情
 - `POST /api/bookings` - 创建预订
+- `POST /api/bookings/:id/confirm` - 确认预订
+- `POST /api/bookings/:id/start` - 开始任务
 - `POST /api/bookings/:id/complete` - 完成预订
+- `POST /api/bookings/:id/cancel` - 取消预订
+
+除 `/api` 和 `/api/health` 外，所有 API 请求都必须携带 `Authorization: Bearer <API_KEY>` 或 `x-api-key: <API_KEY>`。这是服务级访问控制，不替代最终用户身份和资源所有权授权。
+
+`GET /api/health` 是进程存活检查；`GET /api/ready` 会验证数据库连接，适合作为容器 readiness probe。
 
 详细文档：[TECHNICAL.md](TECHNICAL.md)
 
 ## 🏗️ 技术栈
 
 ### 前端
-- Next.js 14 (App Router)
-- React 18
+- Next.js 16 (App Router)
+- React 19
 - TypeScript
 - Tailwind CSS
 - Zustand (状态管理)
-- React Query (数据获取)
 
 ### 后端
-- Node.js + Express
+- Next.js Route Handlers
 - Prisma ORM
 - PostgreSQL
-- Socket.io (实时通讯)
-- Stripe Connect (支付)
 
 ### 部署
 - Docker
 - Docker Compose
-- PM2 (生产环境)
 
 ## 📊 支持的技能
 
@@ -186,12 +188,12 @@ HumanAPI/
 
 ## 🔐 安全特性
 
-- JWT 认证
-- Rate Limiting
+- API Key 认证
 - 输入验证 (Zod)
 - SQL 注入防护 (Prisma)
 - XSS 防护 (React)
-- HTTPS 强制
+
+资源级授权、限流、HTTPS 终止和审计日志需要由部署方补齐。
 
 ## 🌍 多语言支持
 

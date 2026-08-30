@@ -8,6 +8,6 @@ export async function GET() {
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    version: '1.0.0',
+    version: '1.2.0',
   })
 }
