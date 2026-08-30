@@ -22,6 +22,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "pretypecheck": "prisma generate",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0 --ignore-pattern 'mcp-server/dist/**'",
     "test": "vitest run --exclude 'mcp-server/**' && npm run mcp:test",
