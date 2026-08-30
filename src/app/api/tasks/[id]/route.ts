@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 /**
@@ -12,7 +12,7 @@ interface RouteContext {
  */
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     const task = await prisma.task.findUnique({
       where: { id },
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
  */
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
     const body = await request.json()
 
     const task = await prisma.task.update({
@@ -110,7 +110,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
  */
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     await prisma.task.delete({
       where: { id },

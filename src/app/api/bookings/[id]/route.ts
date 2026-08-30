@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 /**
@@ -12,7 +12,7 @@ interface RouteContext {
  */
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     const booking = await prisma.booking.findUnique({
       where: { id },
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
  */
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
     const body = await request.json()
 
     const booking = await prisma.booking.update({
@@ -126,7 +126,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
  */
 export async function POST_confirm(request: NextRequest, context: RouteContext) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     const booking = await prisma.booking.update({
       where: { id },
@@ -161,7 +161,7 @@ export async function POST_confirm(request: NextRequest, context: RouteContext) 
  */
 export async function POST_start(request: NextRequest, context: RouteContext) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     const booking = await prisma.booking.update({
       where: { id },
@@ -203,7 +203,7 @@ export async function POST_start(request: NextRequest, context: RouteContext) {
  */
 export async function POST_complete(request: NextRequest, context: RouteContext) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
     const body = await request.json()
     const { completionProof, actualDuration } = body
 
@@ -263,7 +263,7 @@ export async function POST_complete(request: NextRequest, context: RouteContext)
  */
 export async function POST_cancel(request: NextRequest, context: RouteContext) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     const booking = await prisma.booking.update({
       where: { id },

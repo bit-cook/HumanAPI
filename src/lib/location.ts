@@ -1,5 +1,3 @@
-import { distance as geodistance } from 'geolocation-utils'
-
 export interface Location {
   lat: number
   lon: number
@@ -12,7 +10,20 @@ export interface Location {
  * 计算两个位置之间的距离（米）
  */
 export function calculateDistance(loc1: Location, loc2: Location): number {
-  return geodistance([loc1.lon, loc1.lat], [loc2.lon, loc2.lat]) * 1000
+  const earthRadius = 6_371_000
+  const lat1 = toRadians(loc1.lat)
+  const lat2 = toRadians(loc2.lat)
+  const deltaLat = toRadians(loc2.lat - loc1.lat)
+  const deltaLon = toRadians(loc2.lon - loc1.lon)
+  const haversine =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2
+
+  return earthRadius * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
+}
+
+function toRadians(degrees: number): number {
+  return degrees * (Math.PI / 180)
 }
 
 /**

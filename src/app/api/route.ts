@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 /**
  * GET /api - API 信息
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   return NextResponse.json({
     name: 'HumanAPI',
     version: '1.0.0',

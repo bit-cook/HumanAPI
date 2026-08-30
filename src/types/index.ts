@@ -94,6 +94,7 @@ export interface Booking {
   estimatedDuration: number
   actualDuration?: number
   paymentAmount: number
+  currency: string
   paymentStatus: 'PENDING' | 'PROCESSING' | 'PAID' | 'REJECTED' | 'REFUNDED' | 'PARTIALLY_REFUNDED'
   status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED'
   completionProof?: string
@@ -151,7 +152,7 @@ export interface Dispute {
   updatedAt: Date
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string

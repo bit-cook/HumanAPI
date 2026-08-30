@@ -13,30 +13,30 @@ datasource db {
 // ============ 用户系统 ============
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  phone         String?   @unique
-  password      String?
-  name          String
-  avatar        String?
-  role          UserRole  @default(AGENT)
-  verified      Boolean   @default(false)
-  rating        Float     @default(5.0)
-  totalReviews  Int       @default(0)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  phone        String?  @unique
+  password     String?
+  name         String
+  avatar       String?
+  role         UserRole @default(AGENT)
+  verified     Boolean  @default(false)
+  rating       Float    @default(5.0)
+  totalReviews Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // 关系
-  humanProfile  HumanProfile?
-  tasks         Task[]
-  bookingsAsAgent Booking[]      @relation("AgentBookings")
-  bookingsAsHuman Booking[]      @relation("HumanBookings")
-  reviewsGiven  Review[]         @relation("ReviewsGiven")
-  reviewsReceived Review[]       @relation("ReviewsReceived")
-  disputes      Dispute[]
-  sentMessages  Message[]        @relation("MessageSender")
+  humanProfile     HumanProfile?
+  tasks            Task[]
+  bookingsAsAgent  Booking[]     @relation("AgentBookings")
+  bookingsAsHuman  Booking[]     @relation("HumanBookings")
+  reviewsGiven     Review[]      @relation("ReviewsGiven")
+  reviewsReceived  Review[]      @relation("ReviewsReceived")
+  disputes         Dispute[]
+  sentMessages     Message[]     @relation("MessageSender")
   receivedMessages Message[]     @relation("MessageRecipient")
-  tasksAsHuman  Task[]          @relation("TaskHuman")
+  tasksAsHuman     Task[]        @relation("TaskHuman")
 
   @@index([email])
   @@index([phone])
@@ -51,24 +51,24 @@ enum UserRole {
 // ============ 人类专家档案 ============
 
 model HumanProfile {
-  id              String    @id @default(cuid())
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bio             String?
-  location        Json      // { lat, lon, city, country }
-  skills          Json      // [{ name, verified }]
-  hourlyRate      Float
-  currency        String    @default("CNY")
-  available       Boolean   @default(true)
-  verified        Boolean   @default(false)
-  totalTasks      Int       @default(0)
-  successRate     Float     @default(100.0)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio         String?
+  location    Json // { lat, lon, city, country }
+  skills      Json // [{ name, verified }]
+  hourlyRate  Float
+  currency    String   @default("CNY")
+  available   Boolean  @default(true)
+  verified    Boolean  @default(false)
+  totalTasks  Int      @default(0)
+  successRate Float    @default(100.0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // 关系
-  wallets         Wallet[]
-  certifications  Certification[]
+  wallets        Wallet[]
+  certifications Certification[]
 
   @@index([location])
   @@index([hourlyRate])
@@ -78,14 +78,14 @@ model HumanProfile {
 // ============ 钱包 ============
 
 model Wallet {
-  id              String      @id @default(cuid())
-  humanProfileId  String
-  humanProfile    HumanProfile @relation(fields: [humanProfileId], references: [id], onDelete: Cascade)
-  type            WalletType
-  address         String
-  network         String?
-  confirmed       Boolean     @default(false)
-  createdAt       DateTime    @default(now())
+  id             String       @id @default(cuid())
+  humanProfileId String
+  humanProfile   HumanProfile @relation(fields: [humanProfileId], references: [id], onDelete: Cascade)
+  type           WalletType
+  address        String
+  network        String?
+  confirmed      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
 
   @@index([humanProfileId])
 }
@@ -98,15 +98,15 @@ enum WalletType {
 // ============ 认证证书 ============
 
 model Certification {
-  id              String      @id @default(cuid())
-  humanProfileId  String
-  humanProfile    HumanProfile @relation(fields: [humanProfileId], references: [id], onDelete: Cascade)
-  name            String
-  issuer          String?
-  documentUrl     String?
-  verified        Boolean     @default(false)
-  verifiedAt      DateTime?
-  createdAt       DateTime    @default(now())
+  id             String       @id @default(cuid())
+  humanProfileId String
+  humanProfile   HumanProfile @relation(fields: [humanProfileId], references: [id], onDelete: Cascade)
+  name           String
+  issuer         String?
+  documentUrl    String?
+  verified       Boolean      @default(false)
+  verifiedAt     DateTime?
+  createdAt      DateTime     @default(now())
 
   @@index([humanProfileId])
 }
@@ -114,27 +114,27 @@ model Certification {
 // ============ 任务 ============
 
 model Task {
-  id              String      @id @default(cuid())
-  agentId         String
-  agent           User        @relation(fields: [agentId], references: [id])
-  humanId         String?
-  human           User?       @relation("TaskHuman", fields: [humanId], references: [id])
-  title           String
-  description     String      @db.Text
-  skills          Json        // 技能需求
-  location        Json        // 任务位置 { lat, lon, address }
-  scheduledTime   DateTime?
-  estimatedDuration Int        // 预计时长（分钟）
-  paymentAmount   Float
-  currency        String      @default("CNY")
-  status          TaskStatus  @default(DRAFT)
-  priority        Int         @default(5) // 1-10, 10最高
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  completedAt     DateTime?
+  id                String     @id @default(cuid())
+  agentId           String
+  agent             User       @relation(fields: [agentId], references: [id])
+  humanId           String?
+  human             User?      @relation("TaskHuman", fields: [humanId], references: [id])
+  title             String
+  description       String     @db.Text
+  skills            Json // 技能需求
+  location          Json // 任务位置 { lat, lon, address }
+  scheduledTime     DateTime?
+  estimatedDuration Int // 预计时长（分钟）
+  paymentAmount     Float
+  currency          String     @default("CNY")
+  status            TaskStatus @default(DRAFT)
+  priority          Int        @default(5) // 1-10, 10最高
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  completedAt       DateTime?
 
   // 关系
-  booking         Booking?
+  booking Booking?
 
   @@index([agentId])
   @@index([humanId])
@@ -155,32 +155,33 @@ enum TaskStatus {
 // ============ 预订 ============
 
 model Booking {
-  id              String        @id @default(cuid())
-  taskId          String        @unique
-  task            Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  agentId         String
-  agent           User          @relation("AgentBookings", fields: [agentId], references: [id])
-  humanId         String
-  human           User          @relation("HumanBookings", fields: [humanId], references: [id])
-  scheduledTime   DateTime
-  estimatedDuration Int
-  actualDuration  Int?
-  paymentAmount   Float
-  paymentStatus   PaymentStatus @default(PENDING)
-  status          BookingStatus @default(PENDING)
-  completionProof String?
-  agentRating     Float?
-  humanRating     Float?
+  id                    String        @id @default(cuid())
+  taskId                String        @unique
+  task                  Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  agentId               String
+  agent                 User          @relation("AgentBookings", fields: [agentId], references: [id])
+  humanId               String
+  human                 User          @relation("HumanBookings", fields: [humanId], references: [id])
+  scheduledTime         DateTime
+  estimatedDuration     Int
+  actualDuration        Int?
+  paymentAmount         Float
+  currency              String        @default("CNY")
+  paymentStatus         PaymentStatus @default(PENDING)
+  status                BookingStatus @default(PENDING)
+  completionProof       String?
+  agentRating           Float?
+  humanRating           Float?
   stripePaymentIntentId String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  startedAt       DateTime?
-  completedAt     DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  startedAt             DateTime?
+  completedAt           DateTime?
 
   // 关系
-  messages        Message[]
-  reviews         Review[]
-  disputes        Dispute[]
+  messages Message[]
+  reviews  Review[]
+  disputes Dispute[]
 
   @@index([agentId])
   @@index([humanId])
@@ -210,17 +211,17 @@ enum BookingStatus {
 // ============ 消息 ============
 
 model Message {
-  id              String    @id @default(cuid())
-  bookingId       String
-  booking         Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  senderId        String
-  sender          User      @relation("MessageSender", fields: [senderId], references: [id])
-  recipientId     String
-  recipient       User      @relation("MessageRecipient", fields: [recipientId], references: [id])
-  content         String    @db.Text
-  attachments     Json?     // 文件列表
-  read            Boolean   @default(false)
-  createdAt       DateTime  @default(now())
+  id          String   @id @default(cuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User     @relation("MessageSender", fields: [senderId], references: [id])
+  recipientId String
+  recipient   User     @relation("MessageRecipient", fields: [recipientId], references: [id])
+  content     String   @db.Text
+  attachments Json? // 文件列表
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
   @@index([bookingId])
   @@index([senderId])
@@ -231,16 +232,16 @@ model Message {
 // ============ 评价 ============
 
 model Review {
-  id              String    @id @default(cuid())
-  bookingId       String
-  booking         Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  reviewerId      String
-  reviewer        User      @relation("ReviewsGiven", fields: [reviewerId], references: [id])
-  revieweeId      String
-  reviewee        User      @relation("ReviewsReceived", fields: [revieweeId], references: [id])
-  rating          Float     // 1-5
-  comment         String?   @db.Text
-  createdAt       DateTime  @default(now())
+  id         String   @id @default(cuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  reviewerId String
+  reviewer   User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  revieweeId String
+  reviewee   User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  rating     Float // 1-5
+  comment    String?  @db.Text
+  createdAt  DateTime @default(now())
 
   @@unique([bookingId, reviewerId])
   @@index([bookingId])
@@ -258,7 +259,7 @@ model Dispute {
   reporter        User          @relation(fields: [reporterId], references: [id])
   reason          String
   description     String        @db.Text
-  evidence        Json?         // 证据文件列表
+  evidence        Json? // 证据文件列表
   status          DisputeStatus @default(OPEN)
   aiResolution    String?       @db.Text
   humanResolution String?       @db.Text
@@ -291,7 +292,7 @@ model SkillCategory {
   order       Int      @default(0)
   createdAt   DateTime @default(now())
 
-  skills      Skill[]
+  skills Skill[]
 
   @@index([order])
 }

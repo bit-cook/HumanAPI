@@ -139,7 +139,11 @@ export async function POST(request: NextRequest) {
       maxDistance: 10000,
     })
 
-    const sortedHumans = sortByMatchScore(matchingHumans, task)
+    const sortedHumans = sortByMatchScore(matchingHumans, {
+      skills,
+      location,
+      paymentAmount: task.paymentAmount,
+    })
 
     // 通知匹配的专家（实际实现需要集成通知系统）
     console.log(`Task ${task.id} created, notifying ${sortedHumans.length} humans`)

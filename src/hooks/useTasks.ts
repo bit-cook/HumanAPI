@@ -7,14 +7,14 @@ interface TasksState {
   currentTask: Task | null
   isLoading: boolean
   error: string | null
-  fetchTasks: (params?: any) => Promise<void>
+  fetchTasks: (params?: { status?: string; agentId?: string; humanId?: string; page?: number; limit?: number }) => Promise<void>
   fetchTask: (id: string) => Promise<void>
   createTask: (data: CreateTaskParams) => Promise<Task>
   updateTask: (id: string, data: Partial<Task>) => Promise<void>
   deleteTask: (id: string) => Promise<void>
 }
 
-export const useTasks = create<TasksState>((set, get) => ({
+export const useTasks = create<TasksState>((set) => ({
   tasks: [],
   currentTask: null,
   isLoading: false,

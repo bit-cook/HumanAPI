@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
-import { calculateLocationMatch } from '@/lib/location'
+import { calculateDistance, calculateLocationMatch } from '@/lib/location'
+import type { Prisma } from '@prisma/client'
 
 export interface Skill {
   name: string
@@ -13,6 +14,31 @@ export interface MatchScore {
   availabilityMatch: number
   priceMatch: number
   totalScore: number
+}
+
+interface MatchableHuman {
+  skills: Prisma.JsonValue
+  locationMatch?: number
+  user: { rating: number }
+  available: boolean
+  hourlyRate: number
+}
+
+function parseSkills(value: Prisma.JsonValue): Skill[] {
+  if (!Array.isArray(value)) return []
+
+  return value.flatMap((skill) => {
+    if (
+      typeof skill === 'object' &&
+      skill !== null &&
+      !Array.isArray(skill) &&
+      typeof skill.name === 'string' &&
+      typeof skill.verified === 'boolean'
+    ) {
+      return [{ name: skill.name, verified: skill.verified }]
+    }
+    return []
+  })
 }
 
 /**
@@ -37,9 +63,9 @@ export async function findAvailableHumans(params: {
     availableNow = true,
   } = params
 
-  const where: any = {
+  const where: Prisma.HumanProfileWhereInput = {
     verified: true,
-    available: true,
+    ...(availableNow ? { available: true } : {}),
   }
 
   // 价格筛选
@@ -71,7 +97,7 @@ export async function findAvailableHumans(params: {
   // 技能筛选
   if (skills && skills.length > 0) {
     humans = humans.filter((human) => {
-      const humanSkills = human.skills as Skill[]
+      const humanSkills = parseSkills(human.skills)
       return skills.every((skill) =>
         humanSkills.some((hs) => hs.name === skill && hs.verified)
       )
@@ -96,10 +122,7 @@ export async function findAvailableHumans(params: {
         return {
           ...human,
           locationMatch: distanceMatch,
-          distance: geodistance(
-            [location.lon, location.lat],
-            [humanLocation.lon, humanLocation.lat]
-          ) * 1000,
+          distance: calculateDistance(location, humanLocation),
         }
       })
       .filter((human) => human.locationMatch > 0)
@@ -117,14 +140,16 @@ export function calculateMatchScore(
     location: { lat: number; lon: number }
     paymentAmount: number
   },
-  human: any
+  human: MatchableHuman
 ): MatchScore {
   const taskSkills = task.skills
-  const humanSkills = (human.skills as Skill[]).map((s) => s.name)
+  const humanSkills = parseSkills(human.skills).map((skill) => skill.name)
 
   // 技能匹配度
   const matchedSkills = taskSkills.filter((skill) => humanSkills.includes(skill))
-  const skillMatch = (matchedSkills.length / taskSkills.length) * 100
+  const skillMatch = taskSkills.length === 0
+    ? 100
+    : (matchedSkills.length / taskSkills.length) * 100
 
   // 位置匹配度
   const locationMatch = human.locationMatch || 0
@@ -161,38 +186,14 @@ export function calculateMatchScore(
 /**
  * 根据匹配度排序
  */
-export function sortByMatchScore(
-  humans: any[],
-  task: any
-): any[] {
+export function sortByMatchScore<T extends MatchableHuman>(
+  humans: T[],
+  task: Parameters<typeof calculateMatchScore>[0]
+) {
   const scored = humans.map((human) => ({
     ...human,
     score: calculateMatchScore(task, human),
   }))
 
   return scored.sort((a, b) => b.score.totalScore - a.score.totalScore)
-}
-
-// 临时导入 geodistance
-function geodistance(coords1: number[], coords2: number[]): number {
-  const R = 6371 // 地球半径（公里）
-  const [lon1, lat1] = coords1
-  const [lon2, lat2] = coords2
-
-  const dLat = toRad(lat2 - lat1)
-  const dLon = toRad(lon2 - lon1)
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2)
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return R * c
-}
-
-function toRad(degrees: number): number {
-  return degrees * (Math.PI / 180)
 }

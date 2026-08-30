@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 /**
@@ -12,7 +12,7 @@ interface RouteContext {
  */
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     const human = await prisma.humanProfile.findUnique({
       where: { id },
@@ -30,20 +30,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
         },
         wallets: true,
         certifications: true,
-        tasks: {
-          take: 10,
-          orderBy: {
-            createdAt: 'desc',
-          },
-          include: {
-            agent: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
       },
     })
 
@@ -100,7 +86,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
  */
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
     const body = await request.json()
     const {
       bio,

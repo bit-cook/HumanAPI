@@ -182,8 +182,8 @@ export async function POST_book_human(request: NextRequest) {
         task: true,
         agent: true,
         human: {
-          include: {
-            user: true,
+          select: {
+            name: true,
           },
         },
       },
@@ -202,7 +202,7 @@ export async function POST_book_human(request: NextRequest) {
           payment_amount: booking.paymentAmount,
           currency: booking.currency,
           status: booking.status,
-          human_name: booking.human.user.name,
+          human_name: booking.human.name,
         },
       },
       { status: 201 }

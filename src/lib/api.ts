@@ -1,4 +1,11 @@
-import { ApiResponse, HumanProfile, SearchHumansParams } from '@/types'
+import {
+  ApiResponse,
+  Booking,
+  CreateTaskParams,
+  HumanProfile,
+  SearchHumansParams,
+  Task,
+} from '@/types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
 
@@ -20,7 +27,7 @@ async function get<T>(endpoint: string): Promise<ApiResponse<T>> {
   return handleResponse<T>(response)
 }
 
-async function post<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+async function post<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method: 'POST',
     headers: {
@@ -31,7 +38,7 @@ async function post<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
   return handleResponse<T>(response)
 }
 
-async function put<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+async function put<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method: 'PUT',
     headers: {
@@ -87,16 +94,16 @@ export const tasksApi = {
     if (params?.page) searchParams.set('page', params.page.toString())
     if (params?.limit) searchParams.set('limit', params.limit.toString())
 
-    return get(`/tasks?${searchParams}`)
+    return get<Task[]>(`/tasks?${searchParams}`)
   },
 
-  get: (id: string) => get(`/tasks/${id}`),
+  get: (id: string) => get<Task>(`/tasks/${id}`),
 
-  create: (data: any) => post('/tasks', data),
+  create: (data: CreateTaskParams) => post<Task>('/tasks', data),
 
-  update: (id: string, data: any) => put(`/tasks/${id}`, data),
+  update: (id: string, data: Partial<Task>) => put<Task>(`/tasks/${id}`, data),
 
-  delete: (id: string) => del(`/tasks/${id}`),
+  delete: (id: string) => del<never>(`/tasks/${id}`),
 }
 
 // 预订 API
@@ -109,35 +116,35 @@ export const bookingsApi = {
     if (params?.page) searchParams.set('page', params.page.toString())
     if (params?.limit) searchParams.set('limit', params.limit.toString())
 
-    return get(`/bookings?${searchParams}`)
+    return get<Booking[]>(`/bookings?${searchParams}`)
   },
 
-  get: (id: string) => get(`/bookings/${id}`),
+  get: (id: string) => get<Booking>(`/bookings/${id}`),
 
-  create: (data: any) => post('/bookings', data),
+  create: (data: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'>) => post<Booking>('/bookings', data),
 
-  update: (id: string, data: any) => put(`/bookings/${id}`, data),
+  update: (id: string, data: Partial<Booking>) => put<Booking>(`/bookings/${id}`, data),
 
-  confirm: (id: string) => post(`/bookings/${id}/confirm`),
+  confirm: (id: string) => post<Booking>(`/bookings/${id}/confirm`),
 
-  start: (id: string) => post(`/bookings/${id}/start`),
+  start: (id: string) => post<Booking>(`/bookings/${id}/start`),
 
-  complete: (id: string, data: { completionProof?: string; actualDuration?: number }) => post(`/bookings/${id}/complete`, data),
+  complete: (id: string, data: { completionProof?: string; actualDuration?: number }) => post<Booking>(`/bookings/${id}/complete`, data),
 
-  cancel: (id: string) => post(`/bookings/${id}/cancel`),
+  cancel: (id: string) => post<Booking>(`/bookings/${id}/cancel`),
 }
 
 // MCP API
 export const mcpApi = {
-  searchHumans: (params: any) => post('/mcp/search_humans', params),
+  searchHumans: (params: SearchHumansParams) => post<HumanProfile[]>('/mcp/search_humans', params),
 
   getHuman: (id: string) => post('/mcp/get_human', { id }),
 
-  bookHuman: (params: any) => post('/mcp/book_human', params),
+  bookHuman: (params: Record<string, unknown>) => post<Booking>('/mcp/book_human', params),
 
   getBooking: (id: string) => post('/mcp/get_booking', { id }),
 
-  updateBooking: (params: any) => post('/mcp/update_booking', params),
+  updateBooking: (params: Record<string, unknown>) => post<Booking>('/mcp/update_booking', params),
 
   listSkills: () => post('/mcp/list_skills', {}),
 
