@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   quality:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, humanapi-release]
     services:
       postgres:
         image: postgres:16-alpine
@@ -19,14 +19,14 @@ jobs:
           POSTGRES_USER: humanapi
           POSTGRES_PASSWORD: humanapi
         ports:
-          - 5432:5432
+          - 55433:5432
         options: >-
           --health-cmd "pg_isready -U humanapi -d humanapi"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://humanapi:humanapi@localhost:5432/humanapi?schema=public
+      DATABASE_URL: postgresql://humanapi:humanapi@localhost:55433/humanapi?schema=public
       API_KEY: ci-only-api-key
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
