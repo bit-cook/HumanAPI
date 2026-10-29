@@ -1,11 +1,17 @@
 import { NextRequest } from 'next/server'
 
-export const TEST_API_KEY = 'integration-test-api-key'
-
-process.env.API_KEY = process.env.API_KEY ?? TEST_API_KEY
+/**
+ * 测试凭证必须跟随环境里已配置的 API_KEY（CI 会设置自己的值），
+ * 否则会出现"本地通过、CI 全 401"的环境耦合失败。
+ * 未配置时落到默认值，保证 `npx vitest` 单独也能跑。
+ */
+export const TEST_API_KEY = process.env.API_KEY ?? 'integration-test-api-key'
+process.env.API_KEY = TEST_API_KEY
 
 /** 真实数据库不可用时跳过，而不是假失败 */
 export const hasDatabase = Boolean(process.env.DATABASE_URL)
+
+export const WRONG_API_KEY = 'definitely-not-the-server-key'
 
 export function apiRequest(
   path: string,

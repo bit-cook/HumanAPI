@@ -14,7 +14,7 @@ import {
 import { POST as createDispute } from '@/app/api/bookings/[id]/disputes/route'
 import { GET as getDispute, PUT as updateDispute } from '@/app/api/disputes/[id]/route'
 import { POST as mcpPost } from '@/app/api/mcp/route'
-import { apiRequest, hasDatabase, jsonRequest, readJson } from './helpers'
+import { apiRequest, hasDatabase, jsonRequest, readJson, WRONG_API_KEY } from './helpers'
 
 const SHANGHAI = { lat: 31.2304, lon: 121.4737 }
 const BEIJING = { lat: 39.9042, lon: 116.4074 }
@@ -472,7 +472,7 @@ run('HumanAPI 全生命周期（真实 PostgreSQL）', () => {
         '/api/mcp',
         'POST',
         { tool: 'list_skills', arguments: {} },
-        'wrong-key'
+        WRONG_API_KEY
       )
     )
     expect(unauthorized.status).toBe(401)
