@@ -12,6 +12,14 @@ const mocks = vi.hoisted(() => ({
   bookingFindUnique: vi.fn(),
   bookingUpdateMany: vi.fn(),
   bookingFindUniqueOrThrow: vi.fn(),
+  reviewCreate: vi.fn(),
+  reviewAggregate: vi.fn(),
+  userUpdate: vi.fn(),
+  messageCreate: vi.fn(),
+  disputeFindFirst: vi.fn(),
+  disputeCreate: vi.fn(),
+  disputeFindUnique: vi.fn(),
+  disputeUpdate: vi.fn(),
 }))
 
 vi.mock('@/lib/db', () => ({
@@ -43,23 +51,13 @@ describe('MCP HTTP route', () => {
     mocks.findAvailableHumans.mockReset().mockResolvedValue([])
     mocks.runTransaction.mockImplementation(
       async (
-        callback: (transaction: {
-          user: { findUnique: typeof mocks.userFindUnique }
-          humanProfile: { findUnique: typeof mocks.humanProfileFindUnique }
-          task: {
-            create: typeof mocks.taskCreate
-            update: typeof mocks.taskUpdate
-          }
-          booking: {
-            create: typeof mocks.bookingCreate
-            findUnique: typeof mocks.bookingFindUnique
-            updateMany: typeof mocks.bookingUpdateMany
-            findUniqueOrThrow: typeof mocks.bookingFindUniqueOrThrow
-          }
-        }) => Promise<unknown>
+        callback: (transaction: Record<string, unknown>) => Promise<unknown>
       ) =>
         callback({
-          user: { findUnique: mocks.userFindUnique },
+          user: {
+            findUnique: mocks.userFindUnique,
+            update: mocks.userUpdate,
+          },
           humanProfile: { findUnique: mocks.humanProfileFindUnique },
           task: { create: mocks.taskCreate, update: mocks.taskUpdate },
           booking: {
@@ -67,6 +65,17 @@ describe('MCP HTTP route', () => {
             findUnique: mocks.bookingFindUnique,
             updateMany: mocks.bookingUpdateMany,
             findUniqueOrThrow: mocks.bookingFindUniqueOrThrow,
+          },
+          review: {
+            create: mocks.reviewCreate,
+            aggregate: mocks.reviewAggregate,
+          },
+          message: { create: mocks.messageCreate },
+          dispute: {
+            findFirst: mocks.disputeFindFirst,
+            findUnique: mocks.disputeFindUnique,
+            create: mocks.disputeCreate,
+            update: mocks.disputeUpdate,
           },
         })
     )
@@ -128,6 +137,7 @@ describe('MCP HTTP route', () => {
     const scheduledTime = '2026-09-01T10:00:00.000Z'
     mocks.userFindUnique.mockResolvedValue({ id: 'agent-1', role: 'AGENT' })
     mocks.humanProfileFindUnique.mockResolvedValue({
+      userId: 'human-user-1',
       available: true,
       verified: true,
       user: { id: 'human-user-1', name: 'Human One' },
@@ -191,6 +201,7 @@ describe('MCP HTTP route', () => {
   it('rejects an unavailable human before creating task or booking records', async () => {
     mocks.userFindUnique.mockResolvedValue({ id: 'agent-1', role: 'AGENT' })
     mocks.humanProfileFindUnique.mockResolvedValue({
+      userId: 'human-user-1',
       available: false,
       verified: true,
       user: { id: 'human-user-1', name: 'Human One' },
@@ -266,6 +277,202 @@ describe('MCP HTTP route', () => {
         completedAt: expect.any(Date),
       }),
     })
+  })
+
+  it('create_review aggregates the reviewee rating inside the transaction', async () => {
+    mocks.bookingFindUnique.mockResolvedValue({
+      status: 'COMPLETED',
+      agentId: 'agent-1',
+      humanId: 'human-user-1',
+    })
+    mocks.reviewCreate.mockResolvedValue({ id: 'review-1', rating: 4 })
+    mocks.reviewAggregate.mockResolvedValue({
+      _avg: { rating: 4.25 },
+      _count: { _all: 2 },
+    })
+    mocks.userUpdate.mockResolvedValue({ id: 'human-user-1' })
+
+    const response = await POST(
+      createRequest(
+        JSON.stringify({
+          tool: 'create_review',
+          arguments: {
+            booking_id: 'booking-1',
+            reviewer_id: 'agent-1',
+            rating: 4,
+            comment: 'well done',
+          },
+        })
+      )
+    )
+
+    expect(response.status).toBe(201)
+    expect(mocks.reviewCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        bookingId: 'booking-1',
+        reviewerId: 'agent-1',
+        revieweeId: 'human-user-1',
+        rating: 4,
+        comment: 'well done',
+      }),
+    })
+    expect(mocks.userUpdate).toHaveBeenCalledWith({
+      where: { id: 'human-user-1' },
+      data: { rating: 4.25, totalReviews: 2 },
+    })
+  })
+
+  it('create_review rejects non-completed bookings and strangers', async () => {
+    mocks.bookingFindUnique.mockResolvedValue({
+      status: 'PENDING',
+      agentId: 'agent-1',
+      humanId: 'human-user-1',
+    })
+
+    const pending = await POST(
+      createRequest(
+        JSON.stringify({
+          tool: 'create_review',
+          arguments: { booking_id: 'b', reviewer_id: 'agent-1', rating: 5 },
+        })
+      )
+    )
+    expect(pending.status).toBe(409)
+    expect(mocks.reviewCreate).not.toHaveBeenCalled()
+
+    mocks.bookingFindUnique.mockResolvedValue({
+      status: 'COMPLETED',
+      agentId: 'agent-1',
+      humanId: 'human-user-1',
+    })
+    const stranger = await POST(
+      createRequest(
+        JSON.stringify({
+          tool: 'create_review',
+          arguments: { booking_id: 'b', reviewer_id: 'someone-else', rating: 5 },
+        })
+      )
+    )
+    expect(stranger.status).toBe(403)
+  })
+
+  it('create_dispute moves the booking to DISPUTED and blocks duplicates', async () => {
+    mocks.bookingFindUnique.mockResolvedValue({
+      status: 'CONFIRMED',
+      agentId: 'agent-1',
+      humanId: 'human-user-1',
+    })
+    mocks.disputeFindFirst.mockResolvedValue(null)
+    mocks.disputeCreate.mockResolvedValue({ id: 'dispute-1' })
+
+    const created = await POST(
+      createRequest(
+        JSON.stringify({
+          tool: 'create_dispute',
+          arguments: {
+            booking_id: 'booking-1',
+            reporter_id: 'agent-1',
+            reason: 'no show',
+            description: 'expert never arrived',
+          },
+        })
+      )
+    )
+    expect(created.status).toBe(201)
+
+    mocks.disputeFindFirst.mockResolvedValue({ id: 'dispute-0' })
+    const duplicate = await POST(
+      createRequest(
+        JSON.stringify({
+          tool: 'create_dispute',
+          arguments: {
+            booking_id: 'booking-1',
+            reporter_id: 'agent-1',
+            reason: 'again',
+            description: 'again',
+          },
+        })
+      )
+    )
+    expect(duplicate.status).toBe(409)
+  })
+
+  it('resolve_dispute closes an open dispute once', async () => {
+    mocks.disputeFindUnique.mockResolvedValue({ status: 'OPEN' })
+    mocks.disputeUpdate.mockResolvedValue({ id: 'dispute-1', status: 'RESOLVED' })
+
+    const resolved = await POST(
+      createRequest(
+        JSON.stringify({
+          tool: 'resolve_dispute',
+          arguments: {
+            id: 'dispute-1',
+            status: 'RESOLVED',
+            resolution: 'refunded',
+          },
+        })
+      )
+    )
+    expect(resolved.status).toBe(200)
+    expect(mocks.disputeUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'RESOLVED',
+          humanResolution: 'refunded',
+          resolvedAt: expect.any(Date),
+        }),
+      })
+    )
+
+    mocks.disputeFindUnique.mockResolvedValue({ status: 'RESOLVED' })
+    const again = await POST(
+      createRequest(
+        JSON.stringify({
+          tool: 'resolve_dispute',
+          arguments: { id: 'dispute-1', status: 'REJECTED' },
+        })
+      )
+    )
+    expect(again.status).toBe(409)
+  })
+
+  it('send_message enforces booking participants', async () => {
+    mocks.bookingFindUnique.mockResolvedValue({
+      status: 'CONFIRMED',
+      agentId: 'agent-1',
+      humanId: 'human-user-1',
+    })
+    mocks.messageCreate.mockResolvedValue({ id: 'message-1' })
+
+    const ok = await POST(
+      createRequest(
+        JSON.stringify({
+          tool: 'send_message',
+          arguments: {
+            booking_id: 'booking-1',
+            sender_id: 'agent-1',
+            recipient_id: 'human-user-1',
+            content: 'on my way',
+          },
+        })
+      )
+    )
+    expect(ok.status).toBe(201)
+
+    const stranger = await POST(
+      createRequest(
+        JSON.stringify({
+          tool: 'send_message',
+          arguments: {
+            booking_id: 'booking-1',
+            sender_id: 'agent-1',
+            recipient_id: 'outsider',
+            content: 'hi',
+          },
+        })
+      )
+    )
+    expect(stranger.status).toBe(403)
   })
 
   it('rejects invalid booking state transitions without writing records', async () => {

@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
               name: true,
               avatar: true,
               rating: true,
+              humanProfile: { select: { id: true } },
             },
           },
           messages: {
@@ -154,8 +155,10 @@ export async function POST(request: NextRequest) {
         throw new TaskUnavailableError()
       }
 
+      // humanId 入参统一为 HumanProfile.id（与 GET /api/humans 输出一致），
+      // 数据模型内部存的是 User.id，这里做一次显式翻译。
       const human = await transaction.humanProfile.findUnique({
-        where: { userId: humanId },
+        where: { id: humanId },
         select: { userId: true, verified: true, available: true },
       })
       if (!human || !human.verified || !human.available) {
@@ -169,7 +172,7 @@ export async function POST(request: NextRequest) {
           humanId: null,
           booking: { is: null },
         },
-        data: { humanId, status: 'ASSIGNED' },
+        data: { humanId: human.userId, status: 'ASSIGNED' },
       })
 
       if (assignment.count !== 1) throw new TaskUnavailableError()
@@ -178,7 +181,7 @@ export async function POST(request: NextRequest) {
         data: {
           taskId,
           agentId: task.agentId,
-          humanId,
+          humanId: human.userId,
           scheduledTime,
           estimatedDuration,
           paymentAmount: task.paymentAmount,
@@ -189,7 +192,14 @@ export async function POST(request: NextRequest) {
         include: {
           task: true,
           agent: { select: { id: true, name: true, avatar: true } },
-          human: { select: { id: true, name: true, avatar: true } },
+          human: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+              humanProfile: { select: { id: true } },
+            },
+          },
         },
       })
     })

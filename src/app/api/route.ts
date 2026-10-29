@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 
+import { APP_VERSION } from '@/lib/version'
+
 /**
  * GET /api - API 信息
  */
 export async function GET() {
   return NextResponse.json({
     name: 'HumanAPI',
-    version: '1.2.0',
+    version: APP_VERSION,
     description: 'Humans as a Service - 让人类成为可调用的 API',
     baseUrl: process.env.APP_URL || 'http://localhost:3000',
     endpoints: {
@@ -14,6 +16,7 @@ export async function GET() {
       humans: '/api/humans',
       tasks: '/api/tasks',
       bookings: '/api/bookings',
+      disputes: '/api/disputes',
     },
     documentation: 'https://github.com/bit-cook/HumanAPI',
   })

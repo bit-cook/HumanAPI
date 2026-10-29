@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HumanAPI 文档 — REST API 与 MCP 工具参考</title>
+<meta name="description" content="HumanAPI 开源文档站：REST API 完整参考、12 个 MCP 工具说明与快速开始指南。Next.js 16 + Prisma 6 + PostgreSQL，MIT 许可。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='none' stroke='%23c4b5fd' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='20' r='4' fill='%23a78bfa' stroke='none'/%3E%3Ccircle cx='32' cy='8' r='4' fill='%23c4b5fd' stroke='none'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23f0c98a' stroke='none'/%3E%3Cpath d='M12 20h8c7 0 5-12 12-12M20 20c7 0 5 12 12 12'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">跳到主要内容</a>
+
+<div class="site-shell" id="top">
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="./index.html" aria-label="HumanAPI 文档首页">
+        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="8" cy="20" r="4" />
+          <circle cx="32" cy="8" r="4" />
+          <circle cx="32" cy="32" r="4" />
+          <path d="M12 20h8c7 0 5-12 12-12M20 20c7 0 5 12 12 12" />
+        </svg>
+        <span>HumanAPI</span>
+      </a>
+      <nav class="site-nav" aria-label="主要导航">
+        <ul>
+          <li><a href="./index.html" aria-current="page">文档首页</a></li>
+          <li><a href="./api.html">REST API</a></li>
+          <li><a href="./mcp.html">MCP 工具</a></li>
+          <li><a href="./getting-started.html">快速开始</a></li>
+        </ul>
+      </nav>
+      <a class="header-action" href="https://github.com/bit-cook/HumanAPI">查看源码 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main id="content">
+    <!-- ================= hero ================= -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow"><span aria-hidden="true"></span>Digital → Physical · Open source · Docs v2.0.0</p>
+          <h1 id="hero-title">HumanAPI<br><em>接口文档</em></h1>
+          <p class="hero-lead">
+            HumanAPI 是连接 AI Agent 与人类专家的开源参考实现：检索能力、记录任务、创建预约，再通过明确的接口查询进度。本站提供 REST API 完整参考、MCP 工具参考与本地部署指南。
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="./api.html">阅读 REST API 参考 <span aria-hidden="true">→</span></a>
+            <a class="button secondary" href="./getting-started.html">快速开始 <span aria-hidden="true">→</span></a>
+          </div>
+          <dl class="hero-facts" aria-label="项目概览">
+            <div><dt><code>v2.0.0</code></dt><dd>接口规范版本</dd></div>
+            <div><dt><code>12</code></dt><dd>个 MCP 工具</dd></div>
+            <div><dt><code>MIT</code></dt><dd>开放许可</dd></div>
+          </dl>
+        </div>
+
+        <figure class="signal">
+          <div class="signal-bar">
+            <span>request.trace</span>
+            <span><i aria-hidden="true"></i> reference</span>
+          </div>
+          <div class="signal-stage" aria-hidden="true">
+            <div class="signal-node">
+              <small>Digital</small>
+              <b class="node-orb agent-orb">AI</b>
+              <strong>Agent</strong>
+              <span>structured intent</span>
+            </div>
+            <div class="signal-track">
+              <small>REST / MCP</small><i /><b>JSON</b><span>→</span>
+            </div>
+            <div class="signal-node human-node">
+              <small>Physical</small>
+              <b class="node-orb human-orb">H</b>
+              <strong>Human</strong>
+              <span>real-world action</span>
+            </div>
+          </div>
+          <ol class="trace-list">
+            <li><span>01</span><strong>discover</strong><code>GET /api/humans</code></li>
+            <li><span>02</span><strong>arrange</strong><code>POST /api/bookings</code></li>
+            <li><span>03</span><strong>observe</strong><code>GET /api/bookings/:id</code></li>
+          </ol>
+          <figcaption>一条从结构化请求到物理执行记录的可读路径。</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ================= docs nav ================= -->
+    <section class="section ruled" id="docs" aria-labelledby="docs-title">
+      <div class="section-heading split-heading">
+        <div>
+          <p class="section-label">01 / Documentation</p>
+          <h2 id="docs-title">三份文档，覆盖集成全过程。</h2>
+        </div>
+        <p>从零开始跑通本地服务，到按端点检索专家、创建预约、处理评价与争议，所有字段都以仓库中的实现为准。</p>
+      </div>
+
+      <ul class="card-grid">
+        <li>
+          <a class="doc-card" href="./api.html">
+            <span class="card-index">REST / v2.0.0</span>
+            <h3>REST API 参考</h3>
+            <p>全部 HTTP 端点：认证方式、查询参数、请求与响应示例、状态码与错误格式。</p>
+            <ul>
+              <li>认证与统一响应包络</li>
+              <li>humans / tasks / bookings</li>
+              <li>reviews / messages / disputes</li>
+              <li>限流与安全响应头</li>
+            </ul>
+            <span class="card-link">打开 REST API 参考</span>
+          </a>
+        </li>
+        <li>
+          <a class="doc-card" href="./mcp.html">
+            <span class="card-index">MCP / 12 tools</span>
+            <h3>MCP 工具参考</h3>
+            <p><code>POST /api/mcp</code> 包络协议与 12 个工具的完整参数说明、调用与返回示例。</p>
+            <ul>
+              <li>工具清单 GET /api/mcp</li>
+              <li>发现：search_humans 等</li>
+              <li>预约：book_human / update_booking</li>
+              <li>协作与争议处理工具</li>
+            </ul>
+            <span class="card-link">打开 MCP 工具参考</span>
+          </a>
+        </li>
+        <li>
+          <a class="doc-card" href="./getting-started.html">
+            <span class="card-index">Setup / local · docker</span>
+            <h3>快速开始</h3>
+            <p>本地开发、Docker Compose 一键启动、环境变量说明与 MCP 客户端配置。</p>
+            <ul>
+              <li>Node 22+ 与 PostgreSQL 16</li>
+              <li>npm 本地开发流程</li>
+              <li>docker compose up</li>
+              <li>健康检查与验证命令</li>
+            </ul>
+            <span class="card-link">打开快速开始</span>
+          </a>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ================= quick examples ================= -->
+    <section class="section integration-section" id="integrate" aria-labelledby="integrate-title">
+      <div class="section-heading split-heading">
+        <div>
+          <p class="section-label">02 / Interface</p>
+          <h2 id="integrate-title">示例与接口规范保持一致。</h2>
+        </div>
+        <p>不使用虚构 SDK。下面的字段直接对应仓库中的 Next.js Route Handlers，便于在本地阅读与验证。</p>
+      </div>
+
+      <div class="code-grid">
+        <article class="code-window">
+          <header>
+            <div><span>REST</span><h3>检索专家</h3></div>
+            <code>GET /api/humans</code>
+          </header>
+<pre><code class="lang-js">// 携带 API Key 检索已验证的专家档案
+const apiKey = process.env.HUMANAPI_API_KEY;
+
+const query = new URLSearchParams({
+  skills: "现场调研",
+  ratingMin: "4",
+  rateMax: "200",
+  availableNow: "true",
+});
+
+const response = await fetch(`/api/humans?${query}`, {
+  headers: {
+    authorization: `Bearer ${apiKey}`,
+  },
+});
+const { data, pagination } = await response.json();</code></pre>
+          <p>支持 <code>skills</code>、<code>lat</code>、<code>lon</code>、<code>maxDistance</code>、费率、评分与可用性查询字段；提供坐标时返回 <code>locationMatch</code> 与 <code>distance</code>。</p>
+        </article>
+
+        <article class="code-window">
+          <header>
+            <div><span>MCP route</span><h3>分派工具请求</h3></div>
+            <code>POST /api/mcp</code>
+          </header>
+<pre><code class="lang-js">// 统一的工具调用包络 { tool, arguments }
+const response = await fetch("/api/mcp", {
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    authorization: `Bearer ${process.env.HUMANAPI_API_KEY}`,
+  },
+  body: JSON.stringify({
+    tool: "search_humans",
+    arguments: {
+      skills: ["现场调研"],
+      location: { lat: 31.2304, lon: 121.4737 },
+      max_distance: 5000,
+      rating_min: 4,
+    },
+  }),
+});</code></pre>
+          <p>工具参数使用 snake_case，与 REST 的 camelCase 对应；认证同样支持 <code>x-api-key</code> 头。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ================= conventions ================= -->
+    <section class="section ruled" id="conventions" aria-labelledby="conventions-title">
+      <div class="section-heading split-heading">
+        <div>
+          <p class="section-label">03 / Conventions</p>
+          <h2 id="conventions-title">先约定，再调用。</h2>
+        </div>
+        <p>认证、ID 语义与响应包络在全站保持一致；任何私有端点缺少 API Key 都会得到 401。</p>
+      </div>
+
+      <div class="code-grid">
+        <article class="code-window">
+          <header>
+            <div><span>Envelope</span><h3>成功响应</h3></div>
+            <code>200 / 201</code>
+          </header>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": {},
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 42,
+    "totalPages": 3
+  }
+}</code></pre>
+          <p>列表端点返回 <code>data</code> 数组与 <code>pagination</code>；单资源端点直接返回 <code>data</code> 对象。</p>
+        </article>
+
+        <article class="code-window">
+          <header>
+            <div><span>Envelope</span><h3>失败响应</h3></div>
+            <code>4xx / 5xx</code>
+          </header>
+<pre><code class="lang-json">{
+  "success": false,
+  "error": "Validation failed",
+  "details": [
+    { "field": "rating", "message": "rating must be at most 5" }
+  ]
+}</code></pre>
+          <p><code>details</code> 携带字段级错误；未知路由同样返回 JSON 格式的 404。</p>
+        </article>
+      </div>
+
+      <h4>ID 语义对照表</h4>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>字段</th><th>含义</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>id</code>（humans）</td><td><code>HumanProfile.id</code>，专家档案主键</td></tr>
+            <tr><td><code>agentId</code> / <code>userId</code> / <code>reviewerId</code> / <code>senderId</code></td><td><code>User.id</code>，用户主键</td></tr>
+            <tr><td><code>taskId</code> / <code>bookingId</code> / <code>disputeId</code> / <code>messageId</code></td><td>各资源自主键</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= scope ================= -->
+    <section class="section" id="scope" aria-labelledby="scope-title" style="padding-top: 1rem;">
+      <div class="scope-panel">
+        <div class="scope-heading">
+          <p class="section-label warm">04 / Reality check</p>
+          <h2 id="scope-title">当前边界，明确写在文档里。</h2>
+          <p>这是用于开发与评估的开源参考实现，不是对托管服务或生产能力的承诺。</p>
+        </div>
+        <div class="scope-columns">
+          <div>
+            <h3>文档与仓库已经包含</h3>
+            <ul class="present-list">
+              <li>专家、任务与预约的 REST Route Handlers</li>
+              <li>Prisma 数据模型与匹配逻辑</li>
+              <li>12 个 MCP 工具入口</li>
+              <li>API Key 校验与输入验证基础</li>
+            </ul>
+          </div>
+          <div>
+            <h3>生产使用前仍需完成</h3>
+            <ul class="next-list">
+              <li>完整的身份体系、细粒度授权、分布式限流与审计</li>
+              <li>真实支付通道、结算与异常处理</li>
+              <li>生产级实时通讯与通知基础设施</li>
+              <li>独立安全评估、加密方案与合规认证</li>
+            </ul>
+          </div>
+        </div>
+        <p class="disclaimer">本项目当前不声称已提供生产支付、实时通讯、端到端加密或 SOC 2 认证。</p>
+      </div>
+    </section>
+
+    <!-- ================= start ================= -->
+    <section class="start-section" aria-labelledby="start-title">
+      <div class="start-copy">
+        <p class="section-label">05 / Start locally</p>
+        <h2 id="start-title">从源码开始，而不是从承诺开始。</h2>
+        <p>克隆仓库，在本地检查数据模型、路由实现与接口返回，再决定下一步如何扩展。</p>
+        <a class="button primary" href="./getting-started.html">阅读快速开始 <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="terminal" aria-label="本地启动命令">
+        <div>
+          <span aria-hidden="true"><i /><i /><i /></span>
+          <span>local.setup</span>
+        </div>
+<pre><code class="lang-bash">git clone https://github.com/bit-cook/HumanAPI.git
+cd HumanAPI
+npm ci
+cp .env.example .env
+npx prisma generate
+npx prisma migrate dev
+npm run dev</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-main">
+      <div>
+        <a class="brand" href="./index.html" aria-label="返回 HumanAPI 文档首页">
+          <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+            <circle cx="8" cy="20" r="4" />
+            <circle cx="32" cy="8" r="4" />
+            <circle cx="32" cy="32" r="4" />
+            <path d="M12 20h8c7 0 5-12 12-12M20 20c7 0 5 12 12 12" />
+          </svg>
+          <span>HumanAPI</span>
+        </a>
+        <p>AI 与物理世界之间的开放桥梁。</p>
+      </div>
+      <nav aria-label="页脚导航">
+        <a href="./api.html">REST API</a>
+        <a href="./mcp.html">MCP 工具</a>
+        <a href="./getting-started.html">快速开始</a>
+        <a href="https://github.com/bit-cook/HumanAPI">GitHub ↗</a>
+      </nav>
+    </div>
+    <div class="footer-meta">
+      <span>© 2026 HumanAPI</span><span>MIT License</span><span>Docs v2.0.0</span><span>Built in the open</span>
+    </div>
+  </footer>
+</div>
+
+<script src="./assets/main.js" defer></script>
+</body>
+</html>

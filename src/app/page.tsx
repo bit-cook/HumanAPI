@@ -3,8 +3,14 @@ const tools = [
   ['get_human', '读取单个专家档案与能力信息'],
   ['book_human', '创建任务记录与待处理预约'],
   ['get_booking', '读取预约、支付字段与执行时间'],
-  ['update_booking', '更新预约状态与完成凭据字段'],
+  ['update_booking', '按合法状态迁移更新预约'],
   ['list_skills', '列出技能分类与技能条目'],
+  ['create_review', '评价已完成的预约并重算专家评分'],
+  ['send_message', '在预约上下文中发送消息'],
+  ['create_dispute', '发起争议并将预约置为 DISPUTED'],
+  ['get_dispute', '读取争议详情与处理结论'],
+  ['list_disputes', '按状态或预约过滤争议列表'],
+  ['resolve_dispute', '以 RESOLVED 或 REJECTED 关闭争议'],
 ] as const
 
 const workflow = [

@@ -9,6 +9,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // 集成测试由 vitest.integration.mts 单独驱动（需要真实 PostgreSQL）
+    exclude: ['**/node_modules/**', 'mcp-server/**', '**/*.integration.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary'],

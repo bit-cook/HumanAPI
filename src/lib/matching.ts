@@ -16,6 +16,36 @@ export interface MatchScore {
   totalScore: number
 }
 
+export interface Coordinates {
+  lat: number
+  lon: number
+}
+
+export interface GeoPoint extends Coordinates {
+  locationMatch: number
+  distance: number
+}
+
+export type HumanProfileRecord = Prisma.HumanProfileGetPayload<{
+  include: {
+    user: {
+      select: {
+        id: true
+        name: true
+        avatar: true
+        rating: true
+        totalReviews: true
+        email: true
+      }
+    }
+    wallets: true
+    certifications: true
+  }
+}>
+
+/** 匹配结果：不提供位置时 locationMatch/distance 为 undefined */
+export type MatchedHuman = HumanProfileRecord & Partial<GeoPoint>
+
 interface MatchableHuman {
   skills: Prisma.JsonValue
   locationMatch?: number
@@ -24,7 +54,7 @@ interface MatchableHuman {
   hourlyRate: number
 }
 
-function parseSkills(value: Prisma.JsonValue): Skill[] {
+export function parseSkills(value: Prisma.JsonValue): Skill[] {
   if (!Array.isArray(value)) return []
 
   return value.flatMap((skill) => {
@@ -42,21 +72,58 @@ function parseSkills(value: Prisma.JsonValue): Skill[] {
 }
 
 /**
- * 查找可用的人类专家
+ * Prisma JSON 字段在运行期不可信：脏数据返回 null，由调用方决定
+ * 是剔除该专家还是按无地理位置处理，而不是把 NaN 扩散进匹配分。
+ */
+export function parseCoordinates(value: unknown): Coordinates | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return null
+  }
+  const { lat, lon } = value as Record<string, unknown>
+  if (
+    typeof lat !== 'number' ||
+    typeof lon !== 'number' ||
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon) ||
+    lat < -90 ||
+    lat > 90 ||
+    lon < -180 ||
+    lon > 180
+  ) {
+    return null
+  }
+  return { lat, lon }
+}
+
+/** 技能过滤的唯一实现：REST 与 MCP 共用，要求技能全部 verified */
+export function hasAllSkills(
+  skills: Prisma.JsonValue,
+  required: readonly string[]
+): boolean {
+  if (required.length === 0) return true
+  const humanSkills = parseSkills(skills)
+  return required.every((skill) =>
+    humanSkills.some((hs) => hs.name === skill && hs.verified)
+  )
+}
+
+/**
+ * 查找可用的人类专家。位置参数可选；提供时返回结果附带
+ * locationMatch（0-100）与 distance（米），不提供时两个字段为 undefined。
  */
 export async function findAvailableHumans(params: {
   skills?: string[]
-  location?: { lat: number; lon: number }
+  location?: Coordinates
   maxDistance?: number
   rateMin?: number
   rateMax?: number
   ratingMin?: number
   availableNow?: boolean
-}) {
+}): Promise<MatchedHuman[]> {
   const {
     skills,
     location,
-    maxDistance = 10000,
+    maxDistance = 10_000,
     rateMin,
     rateMax,
     ratingMin,
@@ -66,17 +133,16 @@ export async function findAvailableHumans(params: {
   const where: Prisma.HumanProfileWhereInput = {
     verified: true,
     ...(availableNow ? { available: true } : {}),
+    hourlyRate: {
+      ...(rateMin !== undefined ? { gte: rateMin } : {}),
+      ...(rateMax !== undefined ? { lte: rateMax } : {}),
+    },
+    ...(ratingMin !== undefined && ratingMin > 0
+      ? { user: { rating: { gte: ratingMin } } }
+      : {}),
   }
 
-  // 价格筛选
-  if (rateMin || rateMax) {
-    where.hourlyRate = {}
-    if (rateMin) where.hourlyRate.gte = rateMin
-    if (rateMax) where.hourlyRate.lte = rateMax
-  }
-
-  // 获取所有符合基础条件的专家
-  let humans = await prisma.humanProfile.findMany({
+  const humans = await prisma.humanProfile.findMany({
     where,
     include: {
       user: {
@@ -94,50 +160,38 @@ export async function findAvailableHumans(params: {
     },
   })
 
-  // 技能筛选
-  if (skills && skills.length > 0) {
-    humans = humans.filter((human) => {
-      const humanSkills = parseSkills(human.skills)
-      return skills.every((skill) =>
-        humanSkills.some((hs) => hs.name === skill && hs.verified)
+  let result = humans.filter((human) => hasAllSkills(human.skills, skills ?? []))
+
+  if (location) {
+    result = result.flatMap((human) => {
+      const coordinates = parseCoordinates(human.location)
+      if (!coordinates) return []
+      const locationMatch = calculateLocationMatch(
+        location,
+        coordinates,
+        maxDistance
       )
+      if (locationMatch <= 0) return []
+      return [
+        {
+          ...human,
+          locationMatch,
+          distance: calculateDistance(location, coordinates),
+        },
+      ]
     })
   }
 
-  // 评分筛选
-  if (ratingMin) {
-    humans = humans.filter((human) => human.user.rating >= ratingMin)
-  }
-
-  // 位置筛选和计算匹配度
-  if (location) {
-    humans = humans
-      .map((human) => {
-        const humanLocation = human.location as { lat: number; lon: number }
-        const distanceMatch = calculateLocationMatch(
-          location,
-          humanLocation,
-          maxDistance
-        )
-        return {
-          ...human,
-          locationMatch: distanceMatch,
-          distance: calculateDistance(location, humanLocation),
-        }
-      })
-      .filter((human) => human.locationMatch > 0)
-  }
-
-  return humans
+  return result
 }
 
 /**
- * 计算匹配分数
+ * 计算匹配分数（五维加权）
  */
 export function calculateMatchScore(
   task: {
     skills: string[]
-    location: { lat: number; lon: number }
+    location: Coordinates
     paymentAmount: number
   },
   human: MatchableHuman
@@ -145,31 +199,22 @@ export function calculateMatchScore(
   const taskSkills = task.skills
   const humanSkills = parseSkills(human.skills).map((skill) => skill.name)
 
-  // 技能匹配度
   const matchedSkills = taskSkills.filter((skill) => humanSkills.includes(skill))
-  const skillMatch = taskSkills.length === 0
-    ? 100
-    : (matchedSkills.length / taskSkills.length) * 100
+  const skillMatch =
+    taskSkills.length === 0 ? 100 : (matchedSkills.length / taskSkills.length) * 100
 
-  // 位置匹配度
-  const locationMatch = human.locationMatch || 0
-
-  // 评分匹配度（5分=100分）
+  const locationMatch = human.locationMatch ?? 0
   const ratingMatch = human.user.rating * 20
-
-  // 可用性匹配度
   const availabilityMatch = human.available ? 100 : 0
+  const priceMatch =
+    human.hourlyRate > 0
+      ? Math.max(0, 100 - (human.hourlyRate / task.paymentAmount) * 50)
+      : 50
 
-  // 价格匹配度
-  const priceMatch = human.hourlyRate > 0
-    ? Math.max(0, 100 - (human.hourlyRate / task.paymentAmount) * 50)
-    : 50
-
-  // 计算总分（权重可调整）
   const totalScore =
     skillMatch * 0.35 +
     locationMatch * 0.25 +
-    ratingMatch * 0.20 +
+    ratingMatch * 0.2 +
     availabilityMatch * 0.15 +
     priceMatch * 0.05
 
@@ -184,9 +229,9 @@ export function calculateMatchScore(
 }
 
 /**
- * 根据匹配度排序
+ * 根据匹配度排序（高分在前；同分时近者优先，保证顺序稳定可预期）
  */
-export function sortByMatchScore<T extends MatchableHuman>(
+export function sortByMatchScore<T extends MatchableHuman & { distance?: number }>(
   humans: T[],
   task: Parameters<typeof calculateMatchScore>[0]
 ) {
@@ -195,5 +240,11 @@ export function sortByMatchScore<T extends MatchableHuman>(
     score: calculateMatchScore(task, human),
   }))
 
-  return scored.sort((a, b) => b.score.totalScore - a.score.totalScore)
+  return scored.sort((a, b) => {
+    if (b.score.totalScore !== a.score.totalScore) {
+      return b.score.totalScore - a.score.totalScore
+    }
+    return (a.distance ?? Number.POSITIVE_INFINITY) -
+      (b.distance ?? Number.POSITIVE_INFINITY)
+  })
 }

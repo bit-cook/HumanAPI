@@ -10,5 +10,7 @@ export default defineConfig([
     'coverage/**',
     'node_modules/**',
     'next-env.d.ts',
+    // docs/ 是 GitHub Pages 静态站点，浏览器代码不走本项目的 TS 规则
+    'docs/**',
   ]),
 ])

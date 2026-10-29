@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireApiKey } from '@/lib/auth'
 import { parseJsonBody, updateHumanSchema } from '@/lib/validation'
+import { routeError } from '@/lib/api-error'
 
 interface RouteContext {
-  params: Promise<{
-    id: string
-  }>
+  params: Promise<{ id: string }>
 }
 
 /**
@@ -39,49 +38,23 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     if (!human) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Human not found',
-        },
+        { success: false, error: 'Human not found' },
         { status: 404 }
       )
     }
 
-    // 获取评价
     const reviews = await prisma.review.findMany({
-      where: {
-        revieweeId: human.userId,
-      },
+      where: { revieweeId: human.userId },
       include: {
-        reviewer: {
-          select: {
-            name: true,
-            avatar: true,
-          },
-        },
+        reviewer: { select: { name: true, avatar: true } },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
       take: 10,
     })
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...human,
-        reviews,
-      },
-    })
+    return NextResponse.json({ success: true, data: { ...human, reviews } })
   } catch (error) {
-    console.error('Error fetching human:', error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch human',
-      },
-      { status: 500 }
-    )
+    return routeError(error, 'Error fetching human', 'Human not found')
   }
 }
 
@@ -107,25 +80,18 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       where: { id },
       data: {
         ...fields,
-        ...(skills ? { skills: skills.map(({ name }) => ({ name, verified: false })) } : {}),
+        // 更新技能同样重置 verified，防止自报技能绕过核验
+        ...(skills
+          ? { skills: skills.map(({ name }) => ({ name, verified: false })) }
+          : {}),
       },
       include: {
         user: { select: { id: true, name: true, avatar: true, rating: true } },
       },
     })
 
-    return NextResponse.json({
-      success: true,
-      data: human,
-    })
+    return NextResponse.json({ success: true, data: human })
   } catch (error) {
-    console.error('Error updating human:', error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to update human',
-      },
-      { status: 500 }
-    )
+    return routeError(error, 'Error updating human', 'Human not found')
   }
 }

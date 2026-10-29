@@ -1,4 +1,4 @@
-import { BookingStatus, TaskStatus } from '@prisma/client'
+import { BookingStatus, DisputeStatus, TaskStatus } from '@prisma/client'
 import { z } from 'zod'
 
 export interface ValidationIssue {
@@ -16,10 +16,7 @@ export type ValidationResult<T> =
 
 const idSchema = (field: string) =>
   z
-    .string({
-      required_error: `${field} is required`,
-      invalid_type_error: `${field} must be a string`,
-    })
+    .string({ error: `${field} must be a string` })
     .trim()
     .min(1, `${field} is required`)
     .max(191, `${field} is too long`)
@@ -27,24 +24,19 @@ const idSchema = (field: string) =>
 const queryNumber = (field: string, schema: z.ZodNumber) =>
   z.preprocess(
     (value) =>
-      typeof value === 'string' && value.trim() !== ''
-        ? Number(value)
-        : value,
+      typeof value === 'string' && value.trim() !== '' ? Number(value) : value,
     schema.refine(Number.isFinite, `${field} must be a finite number`)
   )
 
 const finiteNumber = (field: string) =>
   z
-    .number({
-      required_error: `${field} is required`,
-      invalid_type_error: `${field} must be a number`,
-    })
+    .number({ error: `${field} must be a number` })
     .finite(`${field} must be a finite number`)
 
 const pageSchema = queryNumber(
   'page',
   z
-    .number({ invalid_type_error: 'page must be an integer' })
+    .number({ error: 'page must be an integer' })
     .int('page must be an integer')
     .safe('page must be a safe integer')
 )
@@ -54,7 +46,7 @@ const pageSchema = queryNumber(
 const limitSchema = queryNumber(
   'limit',
   z
-    .number({ invalid_type_error: 'limit must be an integer' })
+    .number({ error: 'limit must be an integer' })
     .int('limit must be an integer')
     .safe('limit must be a safe integer')
 )
@@ -70,13 +62,12 @@ const optionalQueryId = (field: string) => idSchema(field).optional()
 
 const taskStatusValues = Object.values(TaskStatus).join(', ')
 const bookingStatusValues = Object.values(BookingStatus).join(', ')
+const disputeStatusValues = Object.values(DisputeStatus).join(', ')
 
 export const tasksQuerySchema = z.object({
   status: z
     .nativeEnum(TaskStatus, {
-      errorMap: () => ({
-        message: `status must be one of: ${taskStatusValues}`,
-      }),
+      error: () => ({ message: `status must be one of: ${taskStatusValues}` }),
     })
     .optional(),
   agentId: optionalQueryId('agentId'),
@@ -87,9 +78,7 @@ export const tasksQuerySchema = z.object({
 export const bookingsQuerySchema = z.object({
   status: z
     .nativeEnum(BookingStatus, {
-      errorMap: () => ({
-        message: `status must be one of: ${bookingStatusValues}`,
-      }),
+      error: () => ({ message: `status must be one of: ${bookingStatusValues}` }),
     })
     .optional(),
   agentId: optionalQueryId('agentId'),
@@ -100,7 +89,7 @@ export const bookingsQuerySchema = z.object({
 const latitudeQuerySchema = queryNumber(
   'lat',
   z
-    .number({ invalid_type_error: 'lat must be a number' })
+    .number({ error: 'lat must be a number' })
     .min(-90, 'lat must be between -90 and 90')
     .max(90, 'lat must be between -90 and 90')
 )
@@ -108,7 +97,7 @@ const latitudeQuerySchema = queryNumber(
 const longitudeQuerySchema = queryNumber(
   'lon',
   z
-    .number({ invalid_type_error: 'lon must be a number' })
+    .number({ error: 'lon must be a number' })
     .min(-180, 'lon must be between -180 and 180')
     .max(180, 'lon must be between -180 and 180')
 )
@@ -134,41 +123,42 @@ export const humansQuerySchema = z
     maxDistance: queryNumber(
       'maxDistance',
       z
-        .number({ invalid_type_error: 'maxDistance must be a number' })
+        .number({ error: 'maxDistance must be a number' })
         .positive('maxDistance must be greater than 0')
     ).default(10_000),
     rateMin: queryNumber(
       'rateMin',
       z
-        .number({ invalid_type_error: 'rateMin must be a number' })
+        .number({ error: 'rateMin must be a number' })
         .nonnegative('rateMin must be at least 0')
     ).default(0),
     rateMax: queryNumber(
       'rateMax',
       z
-        .number({ invalid_type_error: 'rateMax must be a number' })
+        .number({ error: 'rateMax must be a number' })
         .nonnegative('rateMax must be at least 0')
     ).default(999_999),
     ratingMin: queryNumber(
       'ratingMin',
       z
-        .number({ invalid_type_error: 'ratingMin must be a number' })
+        .number({ error: 'ratingMin must be a number' })
         .min(0, 'ratingMin must be between 0 and 5')
         .max(5, 'ratingMin must be between 0 and 5')
     ).default(0),
     availableNow: z
       .enum(['true', 'false'], {
-        errorMap: () => ({
+        error: () => ({
           message: 'availableNow must be either true or false',
         }),
       })
       .transform((value) => value === 'true')
-      .default('true'),
+      .default(true),
+    ...paginationShape,
   })
   .superRefine((query, context) => {
     if ((query.lat === undefined) !== (query.lon === undefined)) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: query.lat === undefined ? ['lat'] : ['lon'],
         message: 'lat and lon must be provided together',
       })
@@ -176,7 +166,7 @@ export const humansQuerySchema = z
 
     if (query.rateMin > query.rateMax) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['rateMax'],
         message: 'rateMax must be greater than or equal to rateMin',
       })
@@ -185,7 +175,7 @@ export const humansQuerySchema = z
 
 const optionalLocationText = (field: string) =>
   z
-    .string({ invalid_type_error: `${field} must be a string` })
+    .string({ error: `${field} must be a string` })
     .trim()
     .min(1, `${field} cannot be empty`)
     .max(500, `${field} is too long`)
@@ -208,10 +198,7 @@ export const locationSchema = z
 const humanSkillInputSchema = z
   .object({
     name: z
-      .string({
-        required_error: 'skills[].name is required',
-        invalid_type_error: 'skills[].name must be a string',
-      })
+      .string({ error: 'skills[].name must be a string' })
       .trim()
       .min(1, 'skills[].name cannot be empty')
       .max(100, 'skills[].name is too long'),
@@ -224,23 +211,20 @@ const storedHumanSkillSchema = humanSkillInputSchema.extend({
 })
 
 const taskSkillSchema = z
-  .string({ invalid_type_error: 'skills must contain only strings' })
+  .string({ error: 'skills must contain only strings' })
   .trim()
   .min(1, 'skills cannot contain empty values')
   .max(100, 'skill names cannot exceed 100 characters')
 
 const currencySchema = z
-  .string({ invalid_type_error: 'currency must be a string' })
+  .string({ error: 'currency must be a string' })
   .trim()
   .min(1, 'currency cannot be empty')
   .max(10, 'currency cannot exceed 10 characters')
   .default('CNY')
 
 const scheduledTimeSchema = z
-  .string({
-    required_error: 'scheduledTime is required',
-    invalid_type_error: 'scheduledTime must be an ISO 8601 string',
-  })
+  .string({ error: 'scheduledTime must be an ISO 8601 string' })
   .datetime({
     offset: true,
     message: 'scheduledTime must be a valid ISO 8601 date-time',
@@ -259,7 +243,7 @@ export const createHumanSchema = z
   .object({
     userId: idSchema('userId'),
     bio: z
-      .string({ invalid_type_error: 'bio must be a string' })
+      .string({ error: 'bio must be a string' })
       .trim()
       .max(5_000, 'bio cannot exceed 5000 characters')
       .nullable()
@@ -267,8 +251,7 @@ export const createHumanSchema = z
     location: locationSchema,
     skills: z
       .array(humanSkillInputSchema, {
-        required_error: 'skills is required',
-        invalid_type_error: 'skills must be an array',
+        error: 'skills must be an array',
       })
       .max(100, 'skills cannot contain more than 100 entries')
       .transform((skills) => skills.map(({ name }) => ({ name, verified: false }))),
@@ -283,25 +266,18 @@ export const createTaskSchema = z
   .object({
     agentId: idSchema('agentId'),
     title: z
-      .string({
-        required_error: 'title is required',
-        invalid_type_error: 'title must be a string',
-      })
+      .string({ error: 'title must be a string' })
       .trim()
       .min(1, 'title is required')
       .max(200, 'title cannot exceed 200 characters'),
     description: z
-      .string({
-        required_error: 'description is required',
-        invalid_type_error: 'description must be a string',
-      })
+      .string({ error: 'description must be a string' })
       .trim()
       .min(1, 'description is required')
       .max(20_000, 'description cannot exceed 20000 characters'),
     skills: z
       .array(taskSkillSchema, {
-        required_error: 'skills is required',
-        invalid_type_error: 'skills must be an array',
+        error: 'skills must be an array',
       })
       .max(100, 'skills cannot contain more than 100 entries'),
     location: locationSchema,
@@ -343,6 +319,102 @@ export const updateBookingSchema = z
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0, 'At least one field is required')
+
+const ratingSchema = finiteNumber('rating')
+  .min(1, 'rating must be between 1 and 5')
+  .max(5, 'rating must be between 1 and 5')
+
+export const createReviewSchema = z
+  .object({
+    reviewerId: idSchema('reviewerId'),
+    rating: ratingSchema,
+    comment: z
+      .string({ error: 'comment must be a string' })
+      .trim()
+      .max(2_000, 'comment cannot exceed 2000 characters')
+      .optional(),
+  })
+  .strict()
+
+export const createMessageSchema = z
+  .object({
+    senderId: idSchema('senderId'),
+    recipientId: idSchema('recipientId'),
+    content: z
+      .string({ error: 'content must be a string' })
+      .trim()
+      .min(1, 'content is required')
+      .max(5_000, 'content cannot exceed 5000 characters'),
+  })
+  .strict()
+  .refine((value) => value.senderId !== value.recipientId, {
+    message: 'senderId and recipientId must be different',
+    path: ['recipientId'],
+  })
+
+export const createDisputeSchema = z
+  .object({
+    reporterId: idSchema('reporterId'),
+    reason: z
+      .string({ error: 'reason must be a string' })
+      .trim()
+      .min(1, 'reason is required')
+      .max(200, 'reason cannot exceed 200 characters'),
+    description: z
+      .string({ error: 'description must be a string' })
+      .trim()
+      .min(1, 'description is required')
+      .max(5_000, 'description cannot exceed 5000 characters'),
+    evidence: z
+      .array(z.record(z.string(), z.unknown()))
+      .max(20, 'evidence cannot contain more than 20 entries')
+      .optional(),
+  })
+  .strict()
+
+export const updateDisputeSchema = z
+  .object({
+    status: z.nativeEnum(DisputeStatus, {
+      error: () => ({
+        message: `status must be one of: ${disputeStatusValues}`,
+      }),
+    }),
+    aiResolution: z
+      .string({ error: 'aiResolution must be a string' })
+      .trim()
+      .max(5_000, 'aiResolution cannot exceed 5000 characters')
+      .optional(),
+    humanResolution: z
+      .string({ error: 'humanResolution must be a string' })
+      .trim()
+      .max(5_000, 'humanResolution cannot exceed 5000 characters')
+      .optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, 'At least one field is required')
+
+export const reviewsQuerySchema = z.object({
+  reviewerId: optionalQueryId('reviewerId'),
+  revieweeId: optionalQueryId('revieweeId'),
+  ...paginationShape,
+})
+
+export const messagesQuerySchema = z.object({
+  ...paginationShape,
+})
+
+export const disputesQuerySchema = z.object({
+  status: z
+    .nativeEnum(DisputeStatus, {
+      error: () => ({
+        message: `status must be one of: ${disputeStatusValues}`,
+      }),
+    })
+    .optional(),
+  bookingId: optionalQueryId('bookingId'),
+  reporterId: optionalQueryId('reporterId'),
+  ...paginationShape,
+})
 
 /**
  * Prisma JSON fields are untrusted at runtime. Invalid entries are ignored

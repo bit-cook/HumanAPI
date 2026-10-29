@@ -1,0 +1,1399 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>REST API 参考 — HumanAPI 文档</title>
+<meta name="description" content="HumanAPI REST API 完整参考：认证方式、humans / tasks / bookings / reviews / messages / disputes 全部端点、查询参数、请求与响应示例、状态码与错误格式。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='none' stroke='%23c4b5fd' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='20' r='4' fill='%23a78bfa' stroke='none'/%3E%3Ccircle cx='32' cy='8' r='4' fill='%23c4b5fd' stroke='none'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23f0c98a' stroke='none'/%3E%3Cpath d='M12 20h8c7 0 5-12 12-12M20 20c7 0 5 12 12 12'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">跳到主要内容</a>
+
+<div class="site-shell">
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="./index.html" aria-label="HumanAPI 文档首页">
+        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="8" cy="20" r="4" />
+          <circle cx="32" cy="8" r="4" />
+          <circle cx="32" cy="32" r="4" />
+          <path d="M12 20h8c7 0 5-12 12-12M20 20c7 0 5 12 12 12" />
+        </svg>
+        <span>HumanAPI</span>
+      </a>
+      <nav class="site-nav" aria-label="主要导航">
+        <ul>
+          <li><a href="./index.html">文档首页</a></li>
+          <li><a href="./api.html" aria-current="page">REST API</a></li>
+          <li><a href="./mcp.html">MCP 工具</a></li>
+          <li><a href="./getting-started.html">快速开始</a></li>
+        </ul>
+      </nav>
+      <a class="header-action" href="https://github.com/bit-cook/HumanAPI">查看源码 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main id="content">
+    <div class="doc-layout">
+      <!-- ================= sidebar ================= -->
+      <aside class="doc-sidebar">
+        <nav class="doc-nav" aria-label="REST API 目录">
+          <div class="nav-group">
+            <p class="nav-title">入门</p>
+            <ul>
+              <li><a href="#overview">端点总览</a></li>
+              <li><a href="#auth">认证</a></li>
+              <li><a href="#conventions">约定</a></li>
+            </ul>
+          </div>
+          <div class="nav-group">
+            <p class="nav-title">服务</p>
+            <ul>
+              <li><a href="#service">服务信息</a></li>
+            </ul>
+          </div>
+          <div class="nav-group">
+            <p class="nav-title">资源</p>
+            <ul>
+              <li><a href="#humans">专家 humans</a></li>
+              <li><a href="#tasks">任务 tasks</a></li>
+              <li><a href="#bookings">预约 bookings</a></li>
+              <li><a href="#reviews">评价 reviews</a></li>
+              <li><a href="#messages">消息 messages</a></li>
+              <li><a href="#disputes">争议 disputes</a></li>
+            </ul>
+          </div>
+          <div class="nav-group">
+            <p class="nav-title">参考</p>
+            <ul>
+              <li><a href="#errors">状态码与错误</a></li>
+              <li><a href="#limits">限流与安全头</a></li>
+            </ul>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- ================= content ================= -->
+      <div class="doc-content">
+        <div class="doc-intro">
+          <p class="section-label">Reference / REST</p>
+          <h1>REST API 参考</h1>
+          <p class="doc-lead">HumanAPI 的全部 HTTP 端点。除三个公开探针外，所有端点都需要 API Key；列表端点返回统一的分页包络，写操作使用明确的资源状态机。</p>
+          <div class="badge-row">
+            <span class="badge">规范版本 <b>v2.0.0</b></span>
+            <span class="badge">基础路径 <b>/api</b></span>
+            <span class="badge">内容类型 <b>application/json</b></span>
+            <span class="badge">限流 <b>120 次 / 60s</b></span>
+          </div>
+        </div>
+
+        <!-- ========== overview ========== -->
+        <section class="doc-section" id="overview" aria-labelledby="overview-title">
+          <p class="section-label">01 / Endpoints</p>
+          <h2 id="overview-title">端点总览</h2>
+          <p>本地开发时基础 URL 为 <code>http://localhost:3000</code>，所有路径相对于 <code>/api</code>。标注“公开”的端点无需认证，其余端点需要 Bearer Token 或 <code>x-api-key</code>。</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>方法</th><th>路径</th><th>说明</th><th>认证</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api</code></td><td>服务信息与版本</td><td>公开</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/health</code></td><td>存活探针（liveness）</td><td>公开</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/ready</code></td><td>就绪探针，探测 PostgreSQL</td><td>公开</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/humans</code></td><td>检索专家档案</td><td>API Key</td></tr>
+                <tr><td><span class="method method-post">POST</span></td><td><code>/api/humans</code></td><td>注册专家档案</td><td>API Key</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/humans/:id</code></td><td>档案详情与最近评价</td><td>API Key</td></tr>
+                <tr><td><span class="method method-put">PUT</span></td><td><code>/api/humans/:id</code></td><td>部分更新档案</td><td>API Key</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/humans/:id/reviews</code></td><td>分页读取专家评价</td><td>API Key</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/tasks</code></td><td>任务列表</td><td>API Key</td></tr>
+                <tr><td><span class="method method-post">POST</span></td><td><code>/api/tasks</code></td><td>创建任务并匹配专家</td><td>API Key</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/tasks/:id</code></td><td>任务详情</td><td>API Key</td></tr>
+                <tr><td><span class="method method-put">PUT</span></td><td><code>/api/tasks/:id</code></td><td>更新任务</td><td>API Key</td></tr>
+                <tr><td><span class="method method-delete">DELETE</span></td><td><code>/api/tasks/:id</code></td><td>删除任务</td><td>API Key</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/bookings</code></td><td>预约列表</td><td>API Key</td></tr>
+                <tr><td><span class="method method-post">POST</span></td><td><code>/api/bookings</code></td><td>创建预约（原子抢占）</td><td>API Key</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/bookings/:id</code></td><td>预约详情</td><td>API Key</td></tr>
+                <tr><td><span class="method method-put">PUT</span></td><td><code>/api/bookings/:id</code></td><td>修改预约时间</td><td>API Key</td></tr>
+                <tr><td><span class="method method-post">POST</span></td><td><code>/api/bookings/:id/:action</code></td><td>预约状态迁移</td><td>API Key</td></tr>
+                <tr><td><span class="method method-post">POST</span></td><td><code>/api/bookings/:id/reviews</code></td><td>提交评价</td><td>API Key</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/bookings/:id/messages</code></td><td>读取预约消息</td><td>API Key</td></tr>
+                <tr><td><span class="method method-post">POST</span></td><td><code>/api/bookings/:id/messages</code></td><td>发送预约消息</td><td>API Key</td></tr>
+                <tr><td><span class="method method-post">POST</span></td><td><code>/api/bookings/:id/disputes</code></td><td>创建争议</td><td>API Key</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/disputes</code></td><td>争议列表</td><td>API Key</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/disputes/:id</code></td><td>争议详情</td><td>API Key</td></tr>
+                <tr><td><span class="method method-put">PUT</span></td><td><code>/api/disputes/:id</code></td><td>更新争议状态</td><td>API Key</td></tr>
+                <tr><td><span class="method method-get">GET</span></td><td><code>/api/mcp</code></td><td>MCP 工具清单</td><td>API Key</td></tr>
+                <tr><td><span class="method method-post">POST</span></td><td><code>/api/mcp</code></td><td>调用 MCP 工具</td><td>API Key</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ========== auth ========== -->
+        <section class="doc-section" id="auth" aria-labelledby="auth-title">
+          <p class="section-label">02 / Authentication</p>
+          <h2 id="auth-title">认证</h2>
+          <p>除 <code>GET /api</code>、<code>GET /api/health</code>、<code>GET /api/ready</code> 三个公开端点外，所有私有端点都需要 API Key。支持两种等价方式：</p>
+          <ul class="plain">
+            <li><code>Authorization: Bearer &lt;API_KEY&gt;</code></li>
+            <li><code>x-api-key: &lt;API_KEY&gt;</code></li>
+          </ul>
+          <p>服务端以常量时间比较校验 Key；缺失或不匹配返回 <code>401</code>，并带 <code>WWW-Authenticate: Bearer</code> 响应头。若服务端未配置 <code>API_KEY</code> 环境变量，私有端点返回 <code>503</code>。</p>
+
+          <p class="example-label">请求示例</p>
+          <div class="code-block">
+            <div class="code-head"><span class="code-label">javascript · fetch</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-js">// 任选一种认证头，效果相同
+const apiKey = process.env.HUMANAPI_API_KEY;
+
+const response = await fetch("http://localhost:3000/api/humans", {
+  headers: {
+    authorization: `Bearer ${apiKey}`,
+    // 或使用： "x-api-key": apiKey,
+  },
+});
+
+if (response.status === 401) {
+  throw new Error("API Key 缺失或无效");
+}</code></pre>
+          </div>
+
+          <div class="note"><b>安全提示：</b>API Key 只应保存在服务端环境或 MCP 客户端环境中，不要写入浏览器端代码或提交进仓库。</div>
+        </section>
+
+        <!-- ========== conventions ========== -->
+        <section class="doc-section" id="conventions" aria-labelledby="conventions-title">
+          <p class="section-label">03 / Conventions</p>
+          <h2 id="conventions-title">约定</h2>
+
+          <h3>统一响应包络</h3>
+          <p>所有端点返回 JSON。成功时为 <code>{ "success": true, "data": ..., "pagination"?: {...} }</code>；失败时为 <code>{ "success": false, "error": "...", "details"?: [{ "field", "message" }] }</code>。</p>
+
+          <p class="example-label">成功 · 列表</p>
+          <div class="code-block">
+            <div class="code-head"><span class="code-label">json · 200</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": [],
+  "pagination": { "page": 1, "limit": 20, "total": 42, "totalPages": 3 }
+}</code></pre>
+          </div>
+
+          <p class="example-label">失败 · 校验错误</p>
+          <div class="code-block">
+            <div class="code-head"><span class="code-label">json · 400</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": false,
+  "error": "Validation failed",
+  "details": [
+    { "field": "rating", "message": "rating must be at most 5" }
+  ]
+}</code></pre>
+          </div>
+
+          <h3>ID 语义</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>字段</th><th>含义</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>id</code> / <code>humanId</code>（humans 相关）</td><td><code>HumanProfile.id</code>，专家档案主键</td></tr>
+                <tr><td><code>agentId</code> / <code>userId</code> / <code>reviewerId</code> / <code>senderId</code> / <code>reporterId</code></td><td><code>User.id</code>，用户主键</td></tr>
+                <tr><td><code>taskId</code> / <code>bookingId</code> / <code>disputeId</code> / <code>messageId</code></td><td>各资源自主键</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>时间与金额</h3>
+          <ul class="plain">
+            <li>时间字段使用 ISO 8601 字符串（含时区偏移），如 <code>2026-11-05T02:00:00.000Z</code>。</li>
+            <li><code>estimatedDuration</code> 单位为分钟；<code>maxDistance</code> 与 <code>distance</code> 单位为米。</li>
+            <li>金额字段 <code>paymentAmount</code> 与 <code>hourlyRate</code> 跟随 <code>currency</code> 字段（默认 <code>CNY</code>）。</li>
+          </ul>
+        </section>
+
+        <!-- ========== service ========== -->
+        <section class="doc-section" id="service" aria-labelledby="service-title">
+          <p class="section-label">04 / Service</p>
+          <h2 id="service-title">服务信息</h2>
+          <p>三个公开端点用于服务发现与部署探活，均无需认证。</p>
+
+          <article class="endpoint" id="get-api">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span></span>
+              <span class="endpoint-perm">公开</span>
+            </div>
+            <p>服务信息。<code>version</code> 字段来自 package.json。</p>
+            <p class="example-label">响应示例 · 200</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "name": "HumanAPI",
+  "version": "2.0.0",
+  "description": "Humans as a Service - 让人类成为可调用的 API",
+  "baseUrl": "http://localhost:3000",
+  "endpoints": {
+    "mcp": "/api/mcp",
+    "humans": "/api/humans",
+    "tasks": "/api/tasks",
+    "bookings": "/api/bookings"
+  },
+  "documentation": "https://github.com/bit-cook/HumanAPI"
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="get-health">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/health</span>
+              <span class="endpoint-perm">公开</span>
+            </div>
+            <p>存活探针（liveness）：只报告进程状态，不检查数据库。返回 <code>status</code>、<code>timestamp</code>、<code>uptime</code>、<code>version</code>。</p>
+            <p class="example-label">响应示例 · 200</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "status": "ok",
+  "timestamp": "2026-10-29T08:30:00.000Z",
+  "uptime": 3612.48,
+  "version": "2.0.0"
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="get-ready">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/ready</span>
+              <span class="endpoint-perm">公开</span>
+            </div>
+            <p>就绪探针（readiness）：执行 <code>SELECT 1</code> 探测 PostgreSQL。数据库不可用时返回 <code>503</code>。</p>
+            <p class="example-label">响应示例 · 200 / 503</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{ "status": "ready", "version": "2.0.0" }</code></pre>
+            </div>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json · 503</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{ "status": "not_ready", "version": "2.0.0" }</code></pre>
+            </div>
+          </article>
+        </section>
+
+        <!-- ========== humans ========== -->
+        <section class="doc-section" id="humans" aria-labelledby="humans-title">
+          <p class="section-label">05 / Humans</p>
+          <h2 id="humans-title">专家 humans</h2>
+          <p>专家档案（HumanProfile）是匹配与预约的核心资源。默认只返回 <code>verified: true</code> 的档案。</p>
+
+          <article class="endpoint" id="list-humans">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/humans</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>按技能、位置、费率、评分与可用性检索专家，按用户评分降序返回。</p>
+
+            <h4>查询参数</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>参数</th><th>类型</th><th>默认</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>skills</code></td><td>string</td><td>—</td><td>逗号分隔，要求全部命中（verified 技能）</td></tr>
+                  <tr><td><code>lat</code> / <code>lon</code></td><td>number</td><td>—</td><td>须同时提供；提供后元素附带 <code>locationMatch</code> 与 <code>distance</code>（米）</td></tr>
+                  <tr><td><code>maxDistance</code></td><td>number</td><td>10000</td><td>最大距离（米）</td></tr>
+                  <tr><td><code>rateMin</code></td><td>number</td><td>0</td><td>最低时薪</td></tr>
+                  <tr><td><code>rateMax</code></td><td>number</td><td>999999</td><td>最高时薪</td></tr>
+                  <tr><td><code>ratingMin</code></td><td>number</td><td>0</td><td>最低评分（0–5）</td></tr>
+                  <tr><td><code>availableNow</code></td><td>boolean</td><td>true</td><td>仅返回当前可接单的专家</td></tr>
+                  <tr><td><code>page</code></td><td>number</td><td>1</td><td>页码</td></tr>
+                  <tr><td><code>limit</code></td><td>number</td><td>20</td><td>每页数量，最大 100</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="example-label">请求示例</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">javascript · fetch</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-js">const query = new URLSearchParams({
+  skills: "现场调研",
+  lat: "31.2304",
+  lon: "121.4737",
+  maxDistance: "5000",
+  ratingMin: "4",
+  rateMax: "200",
+  availableNow: "true",
+  page: "1",
+  limit: "20",
+});
+
+const response = await fetch(`http://localhost:3000/api/humans?${query}`, {
+  headers: { authorization: `Bearer ${process.env.HUMANAPI_API_KEY}` },
+});
+const { data, pagination } = await response.json();</code></pre>
+            </div>
+
+            <p class="example-label">响应示例 · 200</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": [
+    {
+      "id": "hp_9k2f71xa",
+      "userId": "usr_4c8d10be",
+      "name": "林晓",
+      "avatar": null,
+      "rating": 4.8,
+      "totalReviews": 126,
+      "skills": [{ "name": "现场调研", "verified": true }],
+      "hourlyRate": 150,
+      "currency": "CNY",
+      "available": true,
+      "verified": true,
+      "totalTasks": 87,
+      "successRate": 0.97,
+      "location": { "lat": 31.2304, "lon": 121.4737, "city": "上海", "country": "中国" },
+      "certifications": [],
+      "locationMatch": true,
+      "distance": 1250
+    }
+  ],
+  "pagination": { "page": 1, "limit": 20, "total": 42, "totalPages": 3 }
+}</code></pre>
+            </div>
+            <div class="note">元素字段：<code>id</code>、<code>userId</code>、<code>name</code>、<code>avatar</code>、<code>rating</code>、<code>totalReviews</code>、<code>skills</code>、<code>hourlyRate</code>、<code>currency</code>、<code>available</code>、<code>verified</code>、<code>totalTasks</code>、<code>successRate</code>、<code>location</code>、<code>certifications</code>；提供 <code>lat</code>/<code>lon</code> 时追加 <code>locationMatch</code> 与 <code>distance</code>。</div>
+          </article>
+
+          <article class="endpoint" id="create-human">
+            <div class="endpoint-head">
+              <span class="method method-post">POST</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/humans</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>注册专家档案。技能的 <code>verified</code> 一律置 <code>false</code>；该用户已存在档案时返回 <code>400</code>。</p>
+
+            <h4>请求体</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>userId</code></td><td>string</td><td>是</td><td>User.id，档案归属用户</td></tr>
+                  <tr><td><code>location</code></td><td>object</td><td>是</td><td><code>{ lat, lon, address?, city?, country? }</code></td></tr>
+                  <tr><td><code>skills</code></td><td>array</td><td>是</td><td><code>[{ name }]</code> 技能条目</td></tr>
+                  <tr><td><code>hourlyRate</code></td><td>number</td><td>是</td><td>时薪</td></tr>
+                  <tr><td><code>currency</code></td><td>string</td><td>否</td><td>币种，默认 CNY</td></tr>
+                  <tr><td><code>bio</code></td><td>string</td><td>否</td><td>个人简介</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="example-label">请求示例</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">javascript · fetch</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-js">const response = await fetch("http://localhost:3000/api/humans", {
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    authorization: `Bearer ${process.env.HUMANAPI_API_KEY}`,
+  },
+  body: JSON.stringify({
+    userId: "usr_4c8d10be",
+    location: { lat: 31.2304, lon: 121.4737, city: "上海", country: "中国" },
+    skills: [{ name: "现场调研" }],
+    hourlyRate: 150,
+    currency: "CNY",
+    bio: "十年市场调研经验，可承接线下访谈与数据收集。",
+  }),
+});
+
+const profile = await response.json();</code></pre>
+            </div>
+
+            <p class="example-label">响应示例 · 201</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": {
+    "id": "hp_9k2f71xa",
+    "userId": "usr_4c8d10be",
+    "skills": [{ "name": "现场调研", "verified": false }],
+    "hourlyRate": 150,
+    "currency": "CNY",
+    "available": true,
+    "verified": false,
+    "totalTasks": 0,
+    "successRate": 0
+  }
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="get-human">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/humans/:id</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>档案详情，附带最近 10 条评价。<code>:id</code> 为 <code>HumanProfile.id</code>；不存在时返回 <code>404</code>。</p>
+            <p class="example-label">响应示例 · 200</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": {
+    "id": "hp_9k2f71xa",
+    "userId": "usr_4c8d10be",
+    "name": "林晓",
+    "avatar": null,
+    "rating": 4.8,
+    "totalReviews": 126,
+    "bio": "十年市场调研经验，可承接线下访谈与数据收集。",
+    "skills": [{ "name": "现场调研", "verified": true }],
+    "hourlyRate": 150,
+    "currency": "CNY",
+    "available": true,
+    "verified": true,
+    "totalTasks": 87,
+    "successRate": 0.97,
+    "location": { "lat": 31.2304, "lon": 121.4737, "city": "上海" },
+    "certifications": [],
+    "recentReviews": [
+      {
+        "id": "rev_5m2ka91x",
+        "rating": 5,
+        "comment": "响应迅速，报告完整。",
+        "createdAt": "2026-09-18T09:12:00.000Z"
+      }
+    ]
+  }
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="update-human">
+            <div class="endpoint-head">
+              <span class="method method-put">PUT</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/humans/:id</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>部分更新档案，可改字段：<code>bio</code>、<code>location</code>、<code>skills</code>、<code>hourlyRate</code>、<code>currency</code>、<code>available</code>。档案不存在返回 <code>404</code>。</p>
+            <p class="example-label">请求示例</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">javascript · fetch</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-js">const humanId = "hp_9k2f71xa";
+
+const response = await fetch(`http://localhost:3000/api/humans/${humanId}`, {
+  method: "PUT",
+  headers: {
+    "content-type": "application/json",
+    authorization: `Bearer ${process.env.HUMANAPI_API_KEY}`,
+  },
+  body: JSON.stringify({
+    hourlyRate: 180,
+    available: false,
+    bio: "十月排期已满，十一月开放预约。",
+  }),
+});</code></pre>
+            </div>
+            <p class="example-label">响应示例 · 200</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": {
+    "id": "hp_9k2f71xa",
+    "hourlyRate": 180,
+    "available": false,
+    "bio": "十月排期已满，十一月开放预约。",
+    "updatedAt": "2026-10-29T08:45:00.000Z"
+  }
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="list-human-reviews">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/humans/:id/reviews</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>分页读取某位专家收到的评价。</p>
+            <h4>查询参数</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>参数</th><th>类型</th><th>默认</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>page</code></td><td>number</td><td>1</td><td>页码</td></tr>
+                  <tr><td><code>limit</code></td><td>number</td><td>20</td><td>每页数量，最大 100</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="example-label">响应示例 · 200</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": [
+    {
+      "id": "rev_5m2ka91x",
+      "bookingId": "bkg_5t8wa31q",
+      "reviewerId": "usr_2b71de04",
+      "rating": 5,
+      "comment": "响应迅速，报告完整。",
+      "createdAt": "2026-09-18T09:12:00.000Z"
+    }
+  ],
+  "pagination": { "page": 1, "limit": 20, "total": 126, "totalPages": 7 }
+}</code></pre>
+            </div>
+          </article>
+        </section>
+
+        <!-- ========== tasks ========== -->
+        <section class="doc-section" id="tasks" aria-labelledby="tasks-title">
+          <p class="section-label">06 / Tasks</p>
+          <h2 id="tasks-title">任务 tasks</h2>
+          <p>任务描述需要人类介入的工作。<code>status</code> 取值：<code>DRAFT</code>、<code>OPEN</code>、<code>ASSIGNED</code>、<code>IN_PROGRESS</code>、<code>COMPLETED</code>、<code>CANCELLED</code>。</p>
+
+          <article class="endpoint" id="list-tasks">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/tasks</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>任务列表，按创建时间降序，附带 agent / human 摘要。</p>
+            <h4>查询参数</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>参数</th><th>类型</th><th>默认</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>status</code></td><td>enum</td><td>—</td><td>DRAFT / OPEN / ASSIGNED / IN_PROGRESS / COMPLETED / CANCELLED</td></tr>
+                  <tr><td><code>agentId</code></td><td>string</td><td>—</td><td>按发起方 User.id 过滤</td></tr>
+                  <tr><td><code>humanId</code></td><td>string</td><td>—</td><td>按执行方 User.id 过滤</td></tr>
+                  <tr><td><code>page</code></td><td>number</td><td>1</td><td>页码</td></tr>
+                  <tr><td><code>limit</code></td><td>number</td><td>20</td><td>每页数量，最大 100</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="example-label">响应示例 · 200</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": [
+    {
+      "id": "tsk_7h3kd92m",
+      "agentId": "usr_2b71de04",
+      "humanId": null,
+      "title": "线下门店巡查",
+      "description": "拍摄三家门店的陈列照片并填写检查表。",
+      "skills": ["现场调研", "摄影"],
+      "status": "OPEN",
+      "priority": "NORMAL",
+      "location": { "lat": 31.2304, "lon": 121.4737, "city": "上海" },
+      "scheduledTime": "2026-11-05T02:00:00.000Z",
+      "estimatedDuration": 120,
+      "paymentAmount": 300,
+      "currency": "CNY",
+      "agent": { "id": "usr_2b71de04", "name": "ResearchBot" },
+      "human": null,
+      "createdAt": "2026-10-28T10:00:00.000Z"
+    }
+  ],
+  "pagination": { "page": 1, "limit": 20, "total": 8, "totalPages": 1 }
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="create-task">
+            <div class="endpoint-head">
+              <span class="method method-post">POST</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/tasks</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>创建任务，返回任务本身与前 10 名匹配专家（<code>matchedHumans</code>，元素带五维 <code>score</code>：技能、位置、评分、可用性、价格）。</p>
+            <h4>请求体</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>agentId</code></td><td>string</td><td>是</td><td>发起方 User.id</td></tr>
+                  <tr><td><code>title</code></td><td>string</td><td>是</td><td>标题</td></tr>
+                  <tr><td><code>description</code></td><td>string</td><td>是</td><td>任务描述</td></tr>
+                  <tr><td><code>skills</code></td><td>string[]</td><td>是</td><td>所需技能</td></tr>
+                  <tr><td><code>location</code></td><td>object</td><td>是</td><td><code>{ lat, lon, address?, city?, country? }</code></td></tr>
+                  <tr><td><code>scheduledTime</code></td><td>string</td><td>否</td><td>计划执行时间（ISO 8601）</td></tr>
+                  <tr><td><code>estimatedDuration</code></td><td>number</td><td>是</td><td>预计时长（分钟）</td></tr>
+                  <tr><td><code>paymentAmount</code></td><td>number</td><td>是</td><td>报酬金额</td></tr>
+                  <tr><td><code>currency</code></td><td>string</td><td>否</td><td>币种，默认 CNY</td></tr>
+                  <tr><td><code>priority</code></td><td>string</td><td>否</td><td>优先级</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="example-label">请求示例</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">javascript · fetch</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-js">const response = await fetch("http://localhost:3000/api/tasks", {
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    authorization: `Bearer ${process.env.HUMANAPI_API_KEY}`,
+  },
+  body: JSON.stringify({
+    agentId: "usr_2b71de04",
+    title: "线下门店巡查",
+    description: "拍摄三家门店的陈列照片并填写检查表。",
+    skills: ["现场调研", "摄影"],
+    location: { lat: 31.2304, lon: 121.4737, city: "上海" },
+    scheduledTime: "2026-11-05T02:00:00.000Z",
+    estimatedDuration: 120,
+    paymentAmount: 300,
+    currency: "CNY",
+    priority: "NORMAL",
+  }),
+});
+
+const { task, matchedHumans } = (await response.json()).data;</code></pre>
+            </div>
+            <p class="example-label">响应示例 · 201</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": {
+    "task": {
+      "id": "tsk_7h3kd92m",
+      "status": "OPEN",
+      "title": "线下门店巡查",
+      "createdAt": "2026-10-28T10:00:00.000Z"
+    },
+    "matchedHumans": [
+      {
+        "id": "hp_9k2f71xa",
+        "name": "林晓",
+        "hourlyRate": 150,
+        "rating": 4.8,
+        "score": {
+          "skills": 1,
+          "location": 0.92,
+          "rating": 0.96,
+          "availability": 1,
+          "price": 0.75,
+          "total": 0.93
+        }
+      }
+    ]
+  }
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="get-task">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/tasks/:id</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>任务详情，含关联的 booking 与 messages。不存在返回 <code>404</code>。</p>
+          </article>
+
+          <article class="endpoint" id="update-task">
+            <div class="endpoint-head">
+              <span class="method method-put">PUT</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/tasks/:id</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>更新任务。仅 <code>DRAFT</code> / <code>OPEN</code> 且未被预约的任务可编辑，否则返回 <code>409</code>。</p>
+          </article>
+
+          <article class="endpoint" id="delete-task">
+            <div class="endpoint-head">
+              <span class="method method-delete">DELETE</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/tasks/:id</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>删除任务。同样仅限 <code>DRAFT</code> / <code>OPEN</code> 且未预约，否则 <code>409</code>；成功返回 <code>200</code>。</p>
+          </article>
+        </section>
+
+        <!-- ========== bookings ========== -->
+        <section class="doc-section" id="bookings" aria-labelledby="bookings-title">
+          <p class="section-label">07 / Bookings</p>
+          <h2 id="bookings-title">预约 bookings</h2>
+          <p>预约把任务与专家绑定，并通过明确的状态机推进：<code>PENDING</code> → <code>CONFIRMED</code> → <code>IN_PROGRESS</code> → <code>COMPLETED</code>，任意非终态可进入 <code>CANCELLED</code> 或 <code>DISPUTED</code>。</p>
+
+          <article class="endpoint" id="list-bookings">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/bookings</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>预约列表，按创建时间降序。元素含 task、agent、human（含 user id 与 humanProfile id）与最近 1 条 message。</p>
+            <h4>查询参数</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>参数</th><th>类型</th><th>默认</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>status</code></td><td>enum</td><td>—</td><td>PENDING / CONFIRMED / IN_PROGRESS / COMPLETED / CANCELLED / DISPUTED</td></tr>
+                  <tr><td><code>agentId</code></td><td>string</td><td>—</td><td>按发起方 User.id 过滤</td></tr>
+                  <tr><td><code>humanId</code></td><td>string</td><td>—</td><td>按执行方 User.id 过滤</td></tr>
+                  <tr><td><code>page</code></td><td>number</td><td>1</td><td>页码</td></tr>
+                  <tr><td><code>limit</code></td><td>number</td><td>20</td><td>每页数量，最大 100</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="example-label">响应示例 · 200</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": [
+    {
+      "id": "bkg_5t8wa31q",
+      "taskId": "tsk_7h3kd92m",
+      "agentId": "usr_2b71de04",
+      "humanId": "usr_4c8d10be",
+      "humanProfileId": "hp_9k2f71xa",
+      "status": "IN_PROGRESS",
+      "paymentStatus": "PENDING",
+      "scheduledTime": "2026-11-05T02:00:00.000Z",
+      "estimatedDuration": 120,
+      "paymentAmount": 300,
+      "currency": "CNY",
+      "task": { "id": "tsk_7h3kd92m", "title": "线下门店巡查", "status": "IN_PROGRESS" },
+      "agent": { "id": "usr_2b71de04", "name": "ResearchBot" },
+      "human": { "id": "usr_4c8d10be", "name": "林晓" },
+      "lastMessage": { "id": "msg_01", "content": "已到第一个门店。", "createdAt": "2026-11-05T02:40:00.000Z" },
+      "createdAt": "2026-10-29T09:00:00.000Z"
+    }
+  ],
+  "pagination": { "page": 1, "limit": 20, "total": 3, "totalPages": 1 }
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="create-booking">
+            <div class="endpoint-head">
+              <span class="method method-post">POST</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/bookings</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>创建预约。任务必须为 <code>OPEN</code> 且未分配；专家必须 <code>verified</code> 且 <code>available</code>。创建为原子抢占操作，并发冲突返回 <code>409</code>。<code>paymentAmount</code> / <code>currency</code> 取自任务。</p>
+            <h4>请求体</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>taskId</code></td><td>string</td><td>是</td><td>任务主键，须为 OPEN 且未分配</td></tr>
+                  <tr><td><code>humanId</code></td><td>string</td><td>是</td><td>HumanProfile.id（注意不是 User.id）</td></tr>
+                  <tr><td><code>scheduledTime</code></td><td>string</td><td>是</td><td>计划执行时间（ISO 8601）</td></tr>
+                  <tr><td><code>estimatedDuration</code></td><td>number</td><td>是</td><td>预计时长（分钟）</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="example-label">请求示例</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">javascript · fetch</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-js">const response = await fetch("http://localhost:3000/api/bookings", {
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    authorization: `Bearer ${process.env.HUMANAPI_API_KEY}`,
+  },
+  body: JSON.stringify({
+    taskId: "tsk_7h3kd92m",
+    humanId: "hp_9k2f71xa",
+    scheduledTime: "2026-11-05T02:00:00.000Z",
+    estimatedDuration: 120,
+  }),
+});
+
+if (response.status === 409) {
+  // 任务已被抢占，或专家当前不可接单
+}</code></pre>
+            </div>
+            <p class="example-label">响应示例 · 201</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": {
+    "id": "bkg_5t8wa31q",
+    "taskId": "tsk_7h3kd92m",
+    "humanId": "hp_9k2f71xa",
+    "status": "PENDING",
+    "paymentStatus": "PENDING",
+    "scheduledTime": "2026-11-05T02:00:00.000Z",
+    "estimatedDuration": 120,
+    "paymentAmount": 300,
+    "currency": "CNY",
+    "createdAt": "2026-10-29T09:00:00.000Z"
+  }
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="get-booking">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/bookings/:id</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>预约详情，含 task、agent、human、messages 与 reviews。不存在返回 <code>404</code>。</p>
+          </article>
+
+          <article class="endpoint" id="update-booking">
+            <div class="endpoint-head">
+              <span class="method method-put">PUT</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/bookings/:id</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>修改预约。仅 <code>PENDING</code> / <code>CONFIRMED</code> 状态可修改 <code>scheduledTime</code> 与 <code>estimatedDuration</code>，否则返回 <code>409</code>。</p>
+            <p class="example-label">请求示例</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">javascript · fetch</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-js">const bookingId = "bkg_5t8wa31q";
+
+const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}`, {
+  method: "PUT",
+  headers: {
+    "content-type": "application/json",
+    authorization: `Bearer ${process.env.HUMANAPI_API_KEY}`,
+  },
+  body: JSON.stringify({
+    scheduledTime: "2026-11-05T03:00:00.000Z",
+    estimatedDuration: 150,
+  }),
+});</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="booking-action">
+            <div class="endpoint-head">
+              <span class="method method-post">POST</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/bookings/:id/:action</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>预约状态迁移。<code>action</code> 决定目标状态与连带效果；非法迁移返回 <code>409</code>，预约不存在返回 <code>404</code>。</p>
+
+            <h4>状态迁移表</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>action</th><th>迁移</th><th>连带效果</th><th>可选 body</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>confirm</code></td><td>PENDING → CONFIRMED</td><td>任务置 ASSIGNED</td><td>—</td></tr>
+                  <tr><td><code>start</code></td><td>CONFIRMED → IN_PROGRESS</td><td>任务置 IN_PROGRESS，记录 startedAt</td><td>—</td></tr>
+                  <tr><td><code>complete</code></td><td>IN_PROGRESS → COMPLETED</td><td>任务置 COMPLETED，记录 completedAt，专家 totalTasks +1</td><td><code>completionProof</code>、<code>actualDuration</code></td></tr>
+                  <tr><td><code>cancel</code></td><td>PENDING / CONFIRMED / IN_PROGRESS → CANCELLED</td><td>任务置 CANCELLED</td><td>—</td></tr>
+                  <tr><td><code>dispute</code></td><td>PENDING / CONFIRMED / IN_PROGRESS → DISPUTED</td><td>任务状态不变（等价于快捷创建争议）</td><td><code>reason</code>、<code>description</code></td></tr>
+                  <tr><td><code>resolve</code></td><td>DISPUTED → COMPLETED</td><td>任务置 COMPLETED，专家 totalTasks +1</td><td><code>completionProof</code>、<code>actualDuration</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="example-label">请求示例</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">javascript · fetch</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-js">const bookingId = "bkg_5t8wa31q";
+
+// complete 可附带完成凭据
+const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/complete`, {
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    authorization: `Bearer ${process.env.HUMANAPI_API_KEY}`,
+  },
+  body: JSON.stringify({
+    completionProof: "https://files.example.com/reports/bkg_5t8wa31q.pdf",
+    actualDuration: 135,
+  }),
+});
+
+const { data } = await response.json();</code></pre>
+            </div>
+            <p class="example-label">响应示例 · 200</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": {
+    "id": "bkg_5t8wa31q",
+    "status": "COMPLETED",
+    "completionProof": "https://files.example.com/reports/bkg_5t8wa31q.pdf",
+    "actualDuration": 135,
+    "completedAt": "2026-11-05T05:15:00.000Z",
+    "task": { "id": "tsk_7h3kd92m", "status": "COMPLETED" }
+  }
+}</code></pre>
+            </div>
+          </article>
+        </section>
+
+        <!-- ========== reviews ========== -->
+        <section class="doc-section" id="reviews" aria-labelledby="reviews-title">
+          <p class="section-label">08 / Reviews</p>
+          <h2 id="reviews-title">评价 reviews</h2>
+
+          <article class="endpoint" id="create-review">
+            <div class="endpoint-head">
+              <span class="method method-post">POST</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/bookings/:id/reviews</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>对已完成的预约提交评价。仅 <code>COMPLETED</code> 预约可评；reviewer 必须是该预约的 agent 或 human，reviewee 自动取对方；同一预约同一 reviewer 只能评一次（<code>409</code>）。提交后异步重算 reviewee 的 <code>User.rating</code>（保留 2 位小数）与 <code>totalReviews</code>。</p>
+            <h4>请求体</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>reviewerId</code></td><td>string</td><td>是</td><td>User.id，须为预约的 agent 或 human</td></tr>
+                  <tr><td><code>rating</code></td><td>number</td><td>是</td><td>1–5 的整数</td></tr>
+                  <tr><td><code>comment</code></td><td>string</td><td>否</td><td>评价内容</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="example-label">请求示例</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">javascript · fetch</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-js">const bookingId = "bkg_5t8wa31q";
+
+const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/reviews`, {
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    authorization: `Bearer ${process.env.HUMANAPI_API_KEY}`,
+  },
+  body: JSON.stringify({
+    reviewerId: "usr_2b71de04",
+    rating: 5,
+    comment: "照片与检查表齐全，沟通顺畅。",
+  }),
+});</code></pre>
+            </div>
+            <p class="example-label">响应示例 · 201</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": {
+    "id": "rev_5m2ka91x",
+    "bookingId": "bkg_5t8wa31q",
+    "reviewerId": "usr_2b71de04",
+    "revieweeId": "usr_4c8d10be",
+    "rating": 5,
+    "comment": "照片与检查表齐全，沟通顺畅。",
+    "createdAt": "2026-11-05T06:00:00.000Z"
+  }
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="get-human-reviews">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/humans/:id/reviews</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>分页读取某专家收到的评价，参数 <code>page</code> / <code>limit</code>。示例见 <a href="#list-human-reviews">专家 humans</a> 一节。</p>
+          </article>
+        </section>
+
+        <!-- ========== messages ========== -->
+        <section class="doc-section" id="messages" aria-labelledby="messages-title">
+          <p class="section-label">09 / Messages</p>
+          <h2 id="messages-title">消息 messages</h2>
+
+          <article class="endpoint" id="list-messages">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/bookings/:id/messages</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>分页读取预约消息，按 <code>createdAt</code> 倒序。参数：<code>page</code>、<code>limit</code>。</p>
+            <p class="example-label">响应示例 · 200</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": [
+    {
+      "id": "msg_02",
+      "bookingId": "bkg_5t8wa31q",
+      "senderId": "usr_4c8d10be",
+      "recipientId": "usr_2b71de04",
+      "content": "已到第一个门店，陈列正常。",
+      "createdAt": "2026-11-05T02:40:00.000Z"
+    }
+  ],
+  "pagination": { "page": 1, "limit": 20, "total": 2, "totalPages": 1 }
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="create-message">
+            <div class="endpoint-head">
+              <span class="method method-post">POST</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/bookings/:id/messages</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>发送消息。sender 与 recipient 必须是该预约的 agent 或 human，且不能相同。</p>
+            <h4>请求体</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>senderId</code></td><td>string</td><td>是</td><td>发送方 User.id</td></tr>
+                  <tr><td><code>recipientId</code></td><td>string</td><td>是</td><td>接收方 User.id，须为预约双方之一</td></tr>
+                  <tr><td><code>content</code></td><td>string</td><td>是</td><td>消息内容</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="example-label">请求示例</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">javascript · fetch</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-js">const bookingId = "bkg_5t8wa31q";
+
+const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/messages`, {
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    authorization: `Bearer ${process.env.HUMANAPI_API_KEY}`,
+  },
+  body: JSON.stringify({
+    senderId: "usr_2b71de04",
+    recipientId: "usr_4c8d10be",
+    content: "巡查时请顺便拍摄冰柜温度显示。",
+  }),
+});</code></pre>
+            </div>
+            <p class="example-label">响应示例 · 201</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": {
+    "id": "msg_03",
+    "bookingId": "bkg_5t8wa31q",
+    "senderId": "usr_2b71de04",
+    "recipientId": "usr_4c8d10be",
+    "content": "巡查时请顺便拍摄冰柜温度显示。",
+    "createdAt": "2026-11-05T02:20:00.000Z"
+  }
+}</code></pre>
+            </div>
+          </article>
+        </section>
+
+        <!-- ========== disputes ========== -->
+        <section class="doc-section" id="disputes" aria-labelledby="disputes-title">
+          <p class="section-label">10 / Disputes</p>
+          <h2 id="disputes-title">争议 disputes</h2>
+          <p>争议状态：<code>OPEN</code>、<code>INVESTIGATING</code>、<code>RESOLVED</code>、<code>REJECTED</code>。</p>
+
+          <article class="endpoint" id="create-dispute">
+            <div class="endpoint-head">
+              <span class="method method-post">POST</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/bookings/:id/disputes</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>对预约创建争议。预约不能已 <code>COMPLETED</code> / <code>CANCELLED</code>；提交后预约置 <code>DISPUTED</code>；已存在 OPEN 争议时返回 <code>409</code>。</p>
+            <h4>请求体</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>reporterId</code></td><td>string</td><td>是</td><td>发起人 User.id</td></tr>
+                  <tr><td><code>reason</code></td><td>string</td><td>是</td><td>争议原因，≤ 200 字符</td></tr>
+                  <tr><td><code>description</code></td><td>string</td><td>是</td><td>详细说明，≤ 5000 字符</td></tr>
+                  <tr><td><code>evidence</code></td><td>string</td><td>否</td><td>证据链接</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="example-label">请求示例</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">javascript · fetch</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-js">const bookingId = "bkg_5t8wa31q";
+
+const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/disputes`, {
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    authorization: `Bearer ${process.env.HUMANAPI_API_KEY}`,
+  },
+  body: JSON.stringify({
+    reporterId: "usr_2b71de04",
+    reason: "未按约定时间到达",
+    description: "约定 14:00 开始，专家 16:30 才到场且未提前告知。",
+    evidence: "https://files.example.com/evidence/chat-log.pdf",
+  }),
+});</code></pre>
+            </div>
+            <p class="example-label">响应示例 · 201</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": {
+    "id": "dsp_6m1qz84e",
+    "bookingId": "bkg_5t8wa31q",
+    "reporterId": "usr_2b71de04",
+    "reason": "未按约定时间到达",
+    "status": "OPEN",
+    "createdAt": "2026-11-05T03:05:00.000Z"
+  }
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="list-disputes">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/disputes</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>争议列表，按创建时间倒序。</p>
+            <h4>查询参数</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>参数</th><th>类型</th><th>默认</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>status</code></td><td>enum</td><td>—</td><td>OPEN / INVESTIGATING / RESOLVED / REJECTED</td></tr>
+                  <tr><td><code>bookingId</code></td><td>string</td><td>—</td><td>按预约过滤</td></tr>
+                  <tr><td><code>reporterId</code></td><td>string</td><td>—</td><td>按发起人过滤</td></tr>
+                  <tr><td><code>page</code></td><td>number</td><td>1</td><td>页码</td></tr>
+                  <tr><td><code>limit</code></td><td>number</td><td>20</td><td>每页数量，最大 100</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="example-label">响应示例 · 200</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": [
+    {
+      "id": "dsp_6m1qz84e",
+      "bookingId": "bkg_5t8wa31q",
+      "reporterId": "usr_2b71de04",
+      "reason": "未按约定时间到达",
+      "status": "INVESTIGATING",
+      "createdAt": "2026-11-05T03:05:00.000Z"
+    }
+  ],
+  "pagination": { "page": 1, "limit": 20, "total": 1, "totalPages": 1 }
+}</code></pre>
+            </div>
+          </article>
+
+          <article class="endpoint" id="get-dispute">
+            <div class="endpoint-head">
+              <span class="method method-get">GET</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/disputes/:id</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>争议详情，含预约摘要与双方信息。不存在返回 <code>404</code>。</p>
+          </article>
+
+          <article class="endpoint" id="update-dispute">
+            <div class="endpoint-head">
+              <span class="method method-put">PUT</span>
+              <span class="endpoint-path"><span class="path-base">/api</span>/disputes/:id</span>
+              <span class="endpoint-perm">需要 API Key</span>
+            </div>
+            <p>更新争议状态与处理结论。置 <code>RESOLVED</code> / <code>REJECTED</code> 时记录 <code>resolvedAt</code>。</p>
+            <h4>请求体</h4>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>status</code></td><td>enum</td><td>是</td><td>INVESTIGATING / RESOLVED / REJECTED</td></tr>
+                  <tr><td><code>aiResolution</code></td><td>string</td><td>否</td><td>AI 处理结论</td></tr>
+                  <tr><td><code>humanResolution</code></td><td>string</td><td>否</td><td>人工处理结论</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="example-label">请求示例</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">javascript · fetch</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-js">const disputeId = "dsp_6m1qz84e";
+
+const response = await fetch(`http://localhost:3000/api/disputes/${disputeId}`, {
+  method: "PUT",
+  headers: {
+    "content-type": "application/json",
+    authorization: `Bearer ${process.env.HUMANAPI_API_KEY}`,
+  },
+  body: JSON.stringify({
+    status: "RESOLVED",
+    humanResolution: "扣除 20% 报酬作为补偿，双方确认结案。",
+  }),
+});</code></pre>
+            </div>
+            <p class="example-label">响应示例 · 200</p>
+            <div class="code-block">
+              <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": true,
+  "data": {
+    "id": "dsp_6m1qz84e",
+    "status": "RESOLVED",
+    "humanResolution": "扣除 20% 报酬作为补偿，双方确认结案。",
+    "resolvedAt": "2026-11-06T10:00:00.000Z"
+  }
+}</code></pre>
+            </div>
+          </article>
+        </section>
+
+        <!-- ========== errors ========== -->
+        <section class="doc-section" id="errors" aria-labelledby="errors-title">
+          <p class="section-label">11 / Errors</p>
+          <h2 id="errors-title">状态码与错误</h2>
+          <p>所有错误响应都是 JSON，并遵循统一的失败包络。未知路由同样返回 JSON 404，而不是 HTML 页面。</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>状态码</th><th>含义</th><th>常见场景</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>200</code></td><td>成功</td><td>查询、更新与状态迁移成功</td></tr>
+                <tr><td><code>201</code></td><td>已创建</td><td>POST humans / tasks / bookings / reviews / messages / disputes</td></tr>
+                <tr><td><code>400</code></td><td>参数错误</td><td>校验失败，<code>details</code> 含字段级错误</td></tr>
+                <tr><td><code>401</code></td><td>未认证</td><td>缺少或无效 API Key，带 <code>WWW-Authenticate: Bearer</code></td></tr>
+                <tr><td><code>404</code></td><td>不存在</td><td>资源不存在；未知路由返回 JSON 404</td></tr>
+                <tr><td><code>409</code></td><td>冲突</td><td>非法状态迁移、任务已被抢占、重复评价或重复争议</td></tr>
+                <tr><td><code>429</code></td><td>触发限流</td><td>超过每 Key 限额，带 <code>Retry-After</code></td></tr>
+                <tr><td><code>500</code></td><td>服务端错误</td><td>未处理的内部异常</td></tr>
+                <tr><td><code>503</code></td><td>不可用</td><td>服务端未配置 <code>API_KEY</code>，或 <code>/api/ready</code> 探测数据库失败</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="example-label">错误响应示例 · 401</p>
+          <div class="code-block">
+            <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": false,
+  "error": "Authentication required"
+}</code></pre>
+          </div>
+        </section>
+
+        <!-- ========== limits ========== -->
+        <section class="doc-section" id="limits" aria-labelledby="limits-title">
+          <p class="section-label">12 / Limits</p>
+          <h2 id="limits-title">限流与安全响应头</h2>
+
+          <h3>限流</h3>
+          <p>每个 API Key 一个滑动窗口计数器，默认 <b>120 次 / 60 秒</b>。超限返回 <code>429</code>，并带 <code>Retry-After</code> 与 <code>X-RateLimit-Limit</code> / <code>X-RateLimit-Remaining</code> / <code>X-RateLimit-Reset</code> 响应头。限额可通过环境变量调整：</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>环境变量</th><th>默认</th><th>说明</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>RATE_LIMIT_MAX</code></td><td>120</td><td>窗口内最大请求数</td></tr>
+                <tr><td><code>RATE_LIMIT_WINDOW_MS</code></td><td>60000</td><td>窗口长度（毫秒）</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="example-label">限流响应示例 · 429</p>
+          <div class="code-block">
+            <div class="code-head"><span class="code-label">json</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "success": false,
+  "error": "Rate limit exceeded",
+  "details": [
+    { "field": "rateLimit", "message": "At most 120 requests per window" }
+  ]
+}</code></pre>
+          </div>
+          <div class="note warm">当前实现为单进程内存计数，适合单体参考部署；多副本水平扩展前应替换为共享存储（如 Redis）。</div>
+
+          <h3>安全响应头</h3>
+          <p>API 响应统一附加以下安全响应头：</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>响应头</th><th>作用</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>X-Content-Type-Options</code></td><td>阻止浏览器嗅探内容类型</td></tr>
+                <tr><td><code>X-Frame-Options</code></td><td>禁止被嵌入框架，降低点击劫持风险</td></tr>
+                <tr><td><code>Referrer-Policy</code></td><td>限制跨站请求携带的 Referer 信息</td></tr>
+                <tr><td><code>Permissions-Policy</code></td><td>收紧浏览器特性权限</td></tr>
+                <tr><td><code>Strict-Transport-Security</code></td><td>强制后续访问使用 HTTPS</td></tr>
+                <tr><td><code>X-DNS-Prefetch-Control</code></td><td>关闭 DNS 预读取，减少信息外泄</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="note">MCP 工具入口（<code>POST /api/mcp</code>）与 REST 共用认证与限流，详见 <a href="./mcp.html">MCP 工具参考</a>。本地跑通服务请查看 <a href="./getting-started.html">快速开始</a>。</div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-main">
+      <div>
+        <a class="brand" href="./index.html" aria-label="返回 HumanAPI 文档首页">
+          <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+            <circle cx="8" cy="20" r="4" />
+            <circle cx="32" cy="8" r="4" />
+            <circle cx="32" cy="32" r="4" />
+            <path d="M12 20h8c7 0 5-12 12-12M20 20c7 0 5 12 12 12" />
+          </svg>
+          <span>HumanAPI</span>
+        </a>
+        <p>AI 与物理世界之间的开放桥梁。</p>
+      </div>
+      <nav aria-label="页脚导航">
+        <a href="./api.html">REST API</a>
+        <a href="./mcp.html">MCP 工具</a>
+        <a href="./getting-started.html">快速开始</a>
+        <a href="https://github.com/bit-cook/HumanAPI">GitHub ↗</a>
+      </nav>
+    </div>
+    <div class="footer-meta">
+      <span>© 2026 HumanAPI</span><span>MIT License</span><span>Docs v2.0.0</span><span>Built in the open</span>
+    </div>
+  </footer>
+</div>
+
+<script src="./assets/main.js" defer></script>
+</body>
+</html>

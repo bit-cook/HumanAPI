@@ -1,6 +1,6 @@
 {
   "name": "humanapi",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "Open-source REST and MCP reference implementation for human-executed AI agent tasks",
   "private": true,
   "license": "MIT",
@@ -26,6 +26,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0 --ignore-pattern 'mcp-server/dist/**'",
     "test": "vitest run --exclude 'mcp-server/**' && npm run mcp:test",
+    "test:integration": "vitest run --config vitest.integration.mts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run mcp:build && npm audit --audit-level=high",
@@ -44,7 +45,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tailwind-merge": "^3.6.0",
-    "zod": "^3.25.76",
+    "zod": "4.6.7",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
@@ -52,13 +53,13 @@
     "@types/node": "^22.20.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "5.0.5",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.3.3",
     "postcss": "^8.5.26",
     "prisma": "^6.12.0",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.11"
+    "vitest": "5.0.5"
   }
 }

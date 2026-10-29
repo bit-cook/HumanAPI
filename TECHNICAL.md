@@ -1,6 +1,6 @@
 # Agent Didi - 技术设计文档
 
-> **历史设计稿 / v1.2.0 实现状态**：当前仓库已实现 Next.js REST/MCP、Prisma/PostgreSQL、匹配与服务级 API Key；本文中的 NextAuth、Socket.io、Redis、Stripe、S3、最终用户授权和支付 webhook 尚未实现，不能视为生产能力。
+> **历史设计稿 / v2.0.0 实现状态**：当前仓库已实现 Next.js REST/MCP、Prisma/PostgreSQL、匹配与服务级 API Key；本文中的 NextAuth、Socket.io、Redis、Stripe、S3、最终用户授权和支付 webhook 尚未实现，不能视为生产能力。
 
 ## 1. 系统架构设计
 

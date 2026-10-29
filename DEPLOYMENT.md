@@ -1,8 +1,8 @@
-# HumanAPI v1.2.0 部署指南
+# HumanAPI v2.0.0 部署指南
 
 ## 实现范围
 
-当前发布包含 Next.js 16、PostgreSQL 16、Prisma migration、服务级 API Key 和 MCP stdio Server。最终用户身份/资源级授权、Stripe、Redis、Socket.io、S3、限流和合规认证尚未实现。
+当前发布包含 Next.js 16、PostgreSQL 16、Prisma migration、服务级 API Key、每 Key 限流、安全响应头和 MCP stdio Server（12 个工具）。最终用户身份/资源级授权、Stripe、Redis、Socket.io、S3 和合规认证尚未实现。
 
 ## 前置要求
 
@@ -86,14 +86,14 @@ HUMANAPI_API_KEY='与服务端 API_KEY 相同' \
 node mcp-server/dist/index.js
 ```
 
-GitHub v1.2.0 Release 会附带 `humanapi-mcp-server-1.2.0.tgz`。npm Registry 包尚未发布。
+GitHub Release 会附带 `humanapi-mcp-server-<version>.tgz`。npm Registry 包尚未发布。
 
 ## 发布前验证
 
 ```bash
 API_KEY='release-check-key' DATABASE_URL='postgresql://...' npm run check
 npm pack --workspace @humanapi/mcp-server --dry-run
-docker build -t humanapi:1.2.0 .
+docker build -t humanapi:2.0.0 .
 ```
 
 ## 生产安全清单
@@ -103,4 +103,4 @@ docker build -t humanapi:1.2.0 .
 - 使用 HTTPS、网络隔离、数据库备份和集中日志；
 - 在多租户上线前实现最终用户身份、资源所有权授权和审计；
 - 在真实支付上线前实现签名 webhook、幂等事件和独立支付账本；
-- 为公开部署补充分布式限流与独立安全评估。
+- 为多副本部署将进程内限流换成共享存储（Redis 等），并安排独立安全评估。

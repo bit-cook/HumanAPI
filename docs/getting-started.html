@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>快速开始 — HumanAPI 文档</title>
+<meta name="description" content="HumanAPI 快速开始：Node 22+ 本地开发、Docker Compose 一键启动、环境变量说明、MCP 客户端配置与健康检查验证。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='none' stroke='%23c4b5fd' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='20' r='4' fill='%23a78bfa' stroke='none'/%3E%3Ccircle cx='32' cy='8' r='4' fill='%23c4b5fd' stroke='none'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23f0c98a' stroke='none'/%3E%3Cpath d='M12 20h8c7 0 5-12 12-12M20 20c7 0 5 12 12 12'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">跳到主要内容</a>
+
+<div class="site-shell">
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="./index.html" aria-label="HumanAPI 文档首页">
+        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="8" cy="20" r="4" />
+          <circle cx="32" cy="8" r="4" />
+          <circle cx="32" cy="32" r="4" />
+          <path d="M12 20h8c7 0 5-12 12-12M20 20c7 0 5 12 12 12" />
+        </svg>
+        <span>HumanAPI</span>
+      </a>
+      <nav class="site-nav" aria-label="主要导航">
+        <ul>
+          <li><a href="./index.html">文档首页</a></li>
+          <li><a href="./api.html">REST API</a></li>
+          <li><a href="./mcp.html">MCP 工具</a></li>
+          <li><a href="./getting-started.html" aria-current="page">快速开始</a></li>
+        </ul>
+      </nav>
+      <a class="header-action" href="https://github.com/bit-cook/HumanAPI">查看源码 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main id="content">
+    <div class="doc-layout">
+      <!-- ================= sidebar ================= -->
+      <aside class="doc-sidebar">
+        <nav class="doc-nav" aria-label="快速开始目录">
+          <div class="nav-group">
+            <p class="nav-title">准备</p>
+            <ul>
+              <li><a href="#prereq">前置要求</a></li>
+              <li><a href="#env">环境变量</a></li>
+            </ul>
+          </div>
+          <div class="nav-group">
+            <p class="nav-title">启动</p>
+            <ul>
+              <li><a href="#local">本地开发</a></li>
+              <li><a href="#docker">Docker Compose</a></li>
+            </ul>
+          </div>
+          <div class="nav-group">
+            <p class="nav-title">接入</p>
+            <ul>
+              <li><a href="#verify">验证服务</a></li>
+              <li><a href="#mcp">MCP 客户端</a></li>
+              <li><a href="#deploy">生产部署要点</a></li>
+              <li><a href="#next">下一步</a></li>
+            </ul>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- ================= content ================= -->
+      <div class="doc-content">
+        <div class="doc-intro">
+          <p class="section-label">Guide / Setup</p>
+          <h1>快速开始</h1>
+          <p class="doc-lead">从克隆仓库到第一个 authenticated 请求。技术栈：Next.js 16 + Prisma 6 + PostgreSQL，Node.js 22+，MIT 许可。</p>
+          <div class="badge-row">
+            <span class="badge">Node <b>&gt;= 22</b></span>
+            <span class="badge">PostgreSQL <b>16</b></span>
+            <span class="badge">包管理 <b>npm 10+</b></span>
+            <span class="badge">许可 <b>MIT</b></span>
+          </div>
+        </div>
+
+        <!-- ========== prereq ========== -->
+        <section class="doc-section" id="prereq" aria-labelledby="prereq-title">
+          <p class="section-label">01 / Prerequisites</p>
+          <h2 id="prereq-title">前置要求</h2>
+          <ul class="plain">
+            <li><b>Node.js 22 或更高版本</b>（<code>engines.node &gt;= 22</code>），npm 10+</li>
+            <li><b>PostgreSQL 16</b>，或直接使用 Docker / Docker Compose</li>
+            <li><b>一个长随机 API Key</b>：<code>openssl rand -hex 32</code></li>
+          </ul>
+          <div class="note">API Key 是服务级凭证：所有私有 REST 与 MCP 端点都要求 <code>Authorization: Bearer &lt;API_KEY&gt;</code> 或 <code>x-api-key</code>。请为每个环境使用独立的高熵值，并定期轮换。</div>
+        </section>
+
+        <!-- ========== env ========== -->
+        <section class="doc-section" id="env" aria-labelledby="env-title">
+          <p class="section-label">02 / Environment</p>
+          <h2 id="env-title">环境变量</h2>
+          <p>复制 <code>.env.example</code> 为 <code>.env</code> 后按需修改。必需项只有两个：<code>DATABASE_URL</code> 与 <code>API_KEY</code>。</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>变量</th><th>必需</th><th>默认</th><th>说明</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>DATABASE_URL</code></td><td>是</td><td>—</td><td>PostgreSQL 连接串</td></tr>
+                <tr><td><code>API_KEY</code></td><td>是</td><td>—</td><td>服务级凭证，私有端点校验用</td></tr>
+                <tr><td><code>APP_URL</code></td><td>否</td><td>http://localhost:3000</td><td>公开源，用于返回 baseUrl</td></tr>
+                <tr><td><code>NODE_ENV</code></td><td>否</td><td>development</td><td>运行环境</td></tr>
+                <tr><td><code>HUMANAPI_API_URL</code></td><td>否</td><td>http://localhost:3000/api/mcp</td><td>MCP stdio 客户端请求的地址</td></tr>
+                <tr><td><code>HUMANAPI_API_KEY</code></td><td>否</td><td>—</td><td>MCP 客户端使用的 Key，须与 <code>API_KEY</code> 相同</td></tr>
+                <tr><td><code>RATE_LIMIT_MAX</code></td><td>否</td><td>120</td><td>窗口内最大请求数（每 API Key）</td></tr>
+                <tr><td><code>RATE_LIMIT_WINDOW_MS</code></td><td>否</td><td>60000</td><td>限流窗口长度（毫秒）</td></tr>
+                <tr><td><code>POSTGRES_DB</code> / <code>POSTGRES_USER</code> / <code>POSTGRES_PASSWORD</code></td><td>否</td><td>humanapi / user / password</td><td>Docker Compose 中 PostgreSQL 的覆盖项</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ========== local ========== -->
+        <section class="doc-section" id="local" aria-labelledby="local-title">
+          <p class="section-label">03 / Local</p>
+          <h2 id="local-title">本地开发</h2>
+          <p>克隆仓库、安装依赖、推送数据库结构，然后启动开发服务器：</p>
+          <div class="terminal" aria-label="本地开发命令">
+            <div>
+              <span aria-hidden="true"><i /><i /><i /></span>
+              <span>bash · local dev</span>
+            </div>
+<pre><code class="lang-bash">git clone https://github.com/bit-cook/HumanAPI.git
+cd HumanAPI
+
+npm ci
+cp .env.example .env
+# 编辑 .env：设置 API_KEY 与 DATABASE_URL
+
+npx prisma generate
+npx prisma migrate dev
+
+npm run dev
+# 开发服务器监听 http://localhost:3000</code></pre>
+          </div>
+          <ul class="plain">
+            <li><code>npx prisma migrate dev</code> 会创建并应用初始 migration，同时生成 Prisma Client。</li>
+            <li><code>npm run dev</code> 启动 Next.js 开发服务器；接口文档见 <a href="./api.html">REST API 参考</a>。</li>
+            <li>修改 Prisma 模型后，重新运行 <code>npx prisma migrate dev</code> 生成新的 migration。</li>
+          </ul>
+        </section>
+
+        <!-- ========== docker ========== -->
+        <section class="doc-section" id="docker" aria-labelledby="docker-title">
+          <p class="section-label">04 / Docker</p>
+          <h2 id="docker-title">Docker Compose</h2>
+          <p>不想本地装 PostgreSQL 时，用 Compose 一键拉起完整链路：</p>
+          <div class="terminal" aria-label="Docker Compose 命令">
+            <div>
+              <span aria-hidden="true"><i /><i /><i /></span>
+              <span>bash · docker compose</span>
+            </div>
+<pre><code class="lang-bash">cp .env.example .env
+# 编辑 .env：API_KEY 与 HUMANAPI_API_KEY 设为同一个长随机值
+
+docker compose up --build -d
+docker compose logs -f migrate app</code></pre>
+          </div>
+          <p>Compose 按顺序执行：</p>
+          <ol class="plain">
+            <li>启动 PostgreSQL 16 并等待健康检查通过；</li>
+            <li>一次性运行 <code>prisma migrate deploy</code>；</li>
+            <li>migration 成功后启动非 root 的 Next.js 容器（<code>restart: unless-stopped</code>，健康检查指向 <code>/api/ready</code>）；</li>
+            <li>映射 <code>3000:3000</code>，用 <code>/api/ready</code> 验证数据库就绪。</li>
+          </ol>
+          <p>常用命令：</p>
+          <div class="terminal" aria-label="Docker Compose 常用命令">
+            <div>
+              <span aria-hidden="true"><i /><i /><i /></span>
+              <span>bash · compose ops</span>
+            </div>
+<pre><code class="lang-bash">docker compose ps
+docker compose logs -f app
+curl http://localhost:3000/api/health
+curl http://localhost:3000/api/ready
+docker compose down</code></pre>
+          </div>
+          <div class="note warm">数据库默认值（<code>humanapi</code> / <code>user</code> / <code>password</code>）为兼容早期 Compose volume 而保留。生产环境必须通过 secret 管理覆盖，并在反向代理处终止 HTTPS。</div>
+        </section>
+
+        <!-- ========== verify ========== -->
+        <section class="doc-section" id="verify" aria-labelledby="verify-title">
+          <p class="section-label">05 / Verify</p>
+          <h2 id="verify-title">验证服务</h2>
+          <p>先用公开探针确认进程与数据库，再带 API Key 请求私有端点：</p>
+          <div class="terminal" aria-label="服务验证命令">
+            <div>
+              <span aria-hidden="true"><i /><i /><i /></span>
+              <span>bash · curl</span>
+            </div>
+<pre><code class="lang-bash"># 公开端点：无需认证
+curl http://localhost:3000/api
+curl http://localhost:3000/api/health
+curl http://localhost:3000/api/ready
+
+# 私有端点：携带 API Key（两种写法等价）
+curl -H "Authorization: Bearer $API_KEY" http://localhost:3000/api/humans
+curl -H "x-api-key: $API_KEY" "http://localhost:3000/api/humans?ratingMin=4&amp;limit=5"</code></pre>
+          </div>
+          <ul class="plain">
+            <li><code>/api/health</code> 返回 <code>status: ok</code> 表示进程存活；</li>
+            <li><code>/api/ready</code> 返回 <code>status: ready</code> 表示 PostgreSQL 可连接，失败时为 <code>503</code>；</li>
+            <li>漏带或写错 Key 会得到 <code>401 Authentication required</code>。</li>
+          </ul>
+        </section>
+
+        <!-- ========== mcp ========== -->
+        <section class="doc-section" id="mcp" aria-labelledby="mcp-title">
+          <p class="section-label">06 / MCP</p>
+          <h2 id="mcp-title">MCP 客户端</h2>
+          <p>仓库内置 MCP stdio Server。先构建，再按客户端要求配置：</p>
+          <div class="terminal" aria-label="MCP Server 构建与启动">
+            <div>
+              <span aria-hidden="true"><i /><i /><i /></span>
+              <span>bash · mcp server</span>
+            </div>
+<pre><code class="lang-bash">npm run mcp:build
+
+HUMANAPI_API_URL='http://localhost:3000/api/mcp' \
+HUMANAPI_API_KEY='与服务端 API_KEY 相同' \
+node mcp-server/dist/index.js</code></pre>
+          </div>
+          <p>在 MCP 客户端（如 Claude Desktop、Cursor 等）的配置文件中添加：</p>
+          <div class="code-block">
+            <div class="code-head"><span class="code-label">json · mcp client config</span><button class="copy-btn" type="button" aria-label="复制代码"><svg class="copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">复制</span></button></div>
+<pre><code class="lang-json">{
+  "mcpServers": {
+    "humanapi": {
+      "command": "node",
+      "args": ["/absolute/path/to/HumanAPI/mcp-server/dist/index.js"],
+      "env": {
+        "HUMANAPI_API_URL": "http://localhost:3000/api/mcp",
+        "HUMANAPI_API_KEY": "与 API_KEY 相同的值"
+      }
+    }
+  }
+}</code></pre>
+          </div>
+          <div class="note"><code>args</code> 必须使用绝对路径；<code>HUMANAPI_API_KEY</code> 与服务端 <code>API_KEY</code> 保持一致。12 个工具的完整参数见 <a href="./mcp.html">MCP 工具参考</a>。</div>
+        </section>
+
+        <!-- ========== deploy ========== -->
+        <section class="doc-section" id="deploy" aria-labelledby="deploy-title">
+          <p class="section-label">07 / Deploy</p>
+          <h2 id="deploy-title">生产部署要点</h2>
+          <p>不使用 Compose 时的手动部署流程：</p>
+          <div class="terminal" aria-label="手动部署命令">
+            <div>
+              <span aria-hidden="true"><i /><i /><i /></span>
+              <span>bash · manual deploy</span>
+            </div>
+<pre><code class="lang-bash">npm ci
+cp .env.example .env
+
+npx prisma migrate deploy
+
+API_KEY='your-secret' DATABASE_URL='postgresql://user:pass@host:5432/humanapi' npm run build
+API_KEY='your-secret' DATABASE_URL='postgresql://user:pass@host:5432/humanapi' npm start</code></pre>
+          </div>
+          <p>上线前检查清单：</p>
+          <ul class="plain">
+            <li>使用高熵 API Key 并定期轮换；Key 只存放在服务端环境，不进入浏览器 bundle；</li>
+            <li>HTTPS 在反向代理处终止，数据库启用备份与网络隔离；</li>
+            <li>当前限流为单进程内存实现，多副本部署前需替换为共享存储；</li>
+            <li>多租户场景前，先补充最终用户身份、资源级授权与审计；</li>
+            <li>接入真实支付前，实现签名 webhook、幂等事件与独立支付账本。</li>
+          </ul>
+        </section>
+
+        <!-- ========== next ========== -->
+        <section class="doc-section" id="next" aria-labelledby="next-title">
+          <p class="section-label">08 / Next</p>
+          <h2 id="next-title">下一步</h2>
+          <p>服务跑起来之后，按这些顺序把完整链路走一遍：</p>
+          <ol class="plain">
+            <li><a href="./api.html#list-humans">GET /api/humans</a> — 按技能与位置检索专家；</li>
+            <li><a href="./api.html#create-task">POST /api/tasks</a> — 创建任务并查看匹配结果；</li>
+            <li><a href="./api.html#create-booking">POST /api/bookings</a> — 抢占专家并创建预约；</li>
+            <li><a href="./api.html#booking-action">POST /api/bookings/:id/:action</a> — confirm / start / complete 全流程；</li>
+            <li><a href="./api.html#create-review">POST /api/bookings/:id/reviews</a> — 完成后互评。</li>
+          </ol>
+          <div class="note">遇到问题？先看 <a href="./api.html#errors">状态码与错误</a> 与 <a href="./api.html#limits">限流与安全响应头</a>，再到 <a href="https://github.com/bit-cook/HumanAPI/issues">GitHub Issues</a> 反馈。</div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-main">
+      <div>
+        <a class="brand" href="./index.html" aria-label="返回 HumanAPI 文档首页">
+          <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+            <circle cx="8" cy="20" r="4" />
+            <circle cx="32" cy="8" r="4" />
+            <circle cx="32" cy="32" r="4" />
+            <path d="M12 20h8c7 0 5-12 12-12M20 20c7 0 5 12 12 12" />
+          </svg>
+          <span>HumanAPI</span>
+        </a>
+        <p>AI 与物理世界之间的开放桥梁。</p>
+      </div>
+      <nav aria-label="页脚导航">
+        <a href="./api.html">REST API</a>
+        <a href="./mcp.html">MCP 工具</a>
+        <a href="./getting-started.html">快速开始</a>
+        <a href="https://github.com/bit-cook/HumanAPI">GitHub ↗</a>
+      </nav>
+    </div>
+    <div class="footer-meta">
+      <span>© 2026 HumanAPI</span><span>MIT License</span><span>Docs v2.0.0</span><span>Built in the open</span>
+    </div>
+  </footer>
+</div>
+
+<script src="./assets/main.js" defer></script>
+</body>
+</html>

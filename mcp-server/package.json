@@ -1,6 +1,6 @@
 {
   "name": "@humanapi/mcp-server",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "stdio MCP server for the HumanAPI service",
   "private": true,
   "license": "MIT",
@@ -45,12 +45,12 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "zod": "^3.25.76"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.11"
+    "vitest": "5.0.5"
   }
 }

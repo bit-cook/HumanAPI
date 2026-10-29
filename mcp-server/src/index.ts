@@ -8,7 +8,7 @@ import { callHumanApi } from './client.js'
 
 const server = new McpServer({
   name: 'humanapi',
-  version: '1.2.0',
+  version: '2.0.0',
 })
 
 function resultContent(value: unknown) {
@@ -126,6 +126,99 @@ server.registerTool(
     inputSchema: {},
   },
   (args) => invokeTool('list_skills', args)
+)
+
+server.registerTool(
+  'create_review',
+  {
+    title: 'Create review',
+    description:
+      'Review a completed booking. The reviewer must be the agent or human of the booking.',
+    inputSchema: {
+      booking_id: z.string().min(1).describe('Booking ID'),
+      reviewer_id: z.string().min(1).describe('Reviewer user ID'),
+      rating: z.number().min(1).max(5).describe('Rating between 1 and 5'),
+      comment: z.string().min(1).optional().describe('Optional review comment'),
+    },
+  },
+  (args) => invokeTool('create_review', args)
+)
+
+server.registerTool(
+  'send_message',
+  {
+    title: 'Send message',
+    description: 'Send a message inside a booking conversation.',
+    inputSchema: {
+      booking_id: z.string().min(1).describe('Booking ID'),
+      sender_id: z.string().min(1).describe('Sender user ID'),
+      recipient_id: z.string().min(1).describe('Recipient user ID'),
+      content: z.string().min(1).describe('Message content'),
+    },
+  },
+  (args) => invokeTool('send_message', args)
+)
+
+server.registerTool(
+  'create_dispute',
+  {
+    title: 'Create dispute',
+    description:
+      'Open a dispute for a booking and move it into the DISPUTED state.',
+    inputSchema: {
+      booking_id: z.string().min(1).describe('Booking ID'),
+      reporter_id: z.string().min(1).describe('Reporter user ID'),
+      reason: z.string().min(1).describe('Short dispute reason'),
+      description: z.string().min(1).describe('Detailed description'),
+      evidence: z
+        .array(z.record(z.string(), z.unknown()))
+        .optional()
+        .describe('Optional evidence entries'),
+    },
+  },
+  (args) => invokeTool('create_dispute', args)
+)
+
+server.registerTool(
+  'get_dispute',
+  {
+    title: 'Get dispute',
+    description: 'Read a dispute by ID.',
+    inputSchema: {
+      id: z.string().min(1).describe('Dispute ID'),
+    },
+  },
+  (args) => invokeTool('get_dispute', args)
+)
+
+server.registerTool(
+  'list_disputes',
+  {
+    title: 'List disputes',
+    description: 'List disputes, optionally filtered by status or booking.',
+    inputSchema: {
+      status: z
+        .enum(['OPEN', 'INVESTIGATING', 'RESOLVED', 'REJECTED'])
+        .optional()
+        .describe('Filter by dispute status'),
+      booking_id: z.string().min(1).optional().describe('Filter by booking ID'),
+    },
+  },
+  (args) => invokeTool('list_disputes', args)
+)
+
+server.registerTool(
+  'resolve_dispute',
+  {
+    title: 'Resolve dispute',
+    description: 'Close a dispute as RESOLVED or REJECTED.',
+    inputSchema: {
+      id: z.string().min(1).describe('Dispute ID'),
+      status: z.enum(['RESOLVED', 'REJECTED']).describe('Closing status'),
+      resolution: z.string().min(1).optional().describe('Resolution note'),
+    },
+  },
+  (args) => invokeTool('resolve_dispute', args)
 )
 
 const transport = new StdioServerTransport()

@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   quality:
-    runs-on: [self-hosted, linux, x64, humanapi-release]
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:16-alpine
@@ -34,8 +34,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
       - run: npm ci
       - run: npx prisma migrate deploy
       - run: npm run check
+      - run: npm run test:integration
       - run: npm pack --workspace @humanapi/mcp-server --dry-run
       - run: docker build -t humanapi:ci .

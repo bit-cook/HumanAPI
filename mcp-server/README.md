@@ -4,7 +4,7 @@
 
 ## 安装
 
-v1.2.0 的 npm Registry 包尚未发布。可从 GitHub Release 下载 `humanapi-mcp-server-1.2.0.tgz`，或克隆仓库后运行：
+npm Registry 包尚未发布。可克隆仓库后运行：
 
 ```bash
 npm ci
@@ -163,7 +163,7 @@ npm run mcp:build
 
 **参数：**
 - `id: string` - 预订ID
-- `status: string` - 新状态（CONFIRMED/IN_PROGRESS/COMPLETED/CANCELLED）
+- `status: string` - 新状态（CONFIRMED/IN_PROGRESS/COMPLETED/CANCELLED；PENDING 是初始态不可回退，DISPUTED 只能经 resolve 动作离开）
 - `proof?: string` - 完成证明（完成任务时提供）
 
 **返回：**
@@ -206,6 +206,62 @@ npm run mcp:build
   }
 }
 ```
+
+
+### create_review
+评价已完成的预约。reviewer 必须是该预约的 agent 或 human，被评方自动取对方；
+同一预约同一 reviewer 只能评价一次。提交后自动重算被评方的 rating 与 totalReviews。
+
+**参数：**
+- `booking_id: string` - 预约 ID
+- `reviewer_id: string` - 评价方用户 ID
+- `rating: number` - 评分（1-5）
+- `comment?: string` - 评价内容
+
+**返回：** `201` + 评价记录；预约非 COMPLETED 返回 `409`，非参与方返回 `403`，
+重复评价返回 `409`。
+
+### send_message
+在预约上下文中发送消息。sender 与 recipient 必须是该预约的 agent 或 human。
+
+**参数：**
+- `booking_id: string` - 预约 ID
+- `sender_id: string` - 发送方用户 ID
+- `recipient_id: string` - 接收方用户 ID
+- `content: string` - 消息内容（最长 5000 字符）
+
+### create_dispute
+对预约发起争议，并把预约状态置为 DISPUTED。已关闭（COMPLETED/CANCELLED）的
+预约不能争议；同一预约同时只允许一个 OPEN 争议。
+
+**参数：**
+- `booking_id: string` - 预约 ID
+- `reporter_id: string` - 举报方用户 ID
+- `reason: string` - 简短原因（最长 200 字符）
+- `description: string` - 详细描述（最长 5000 字符）
+- `evidence?: object[]` - 可选证据列表（最多 20 条）
+
+### get_dispute
+读取争议详情。
+
+**参数：**
+- `id: string` - 争议 ID
+
+### list_disputes
+列出争议，可按状态或预约过滤。
+
+**参数：**
+- `status?: 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'REJECTED'`
+- `booking_id?: string`
+
+### resolve_dispute
+以 RESOLVED 或 REJECTED 关闭争议；已关闭的争议不能重复处理。
+
+**参数：**
+- `id: string` - 争议 ID
+- `status: 'RESOLVED' | 'REJECTED'`
+- `resolution?: string` - 处理结论
+
 
 ## 使用示例
 
@@ -290,4 +346,4 @@ npm run mcp:build
 
 ---
 
-**HumanAPI MCP Server v1.2.0**
+**HumanAPI MCP Server v2.0.0**
